@@ -60,7 +60,7 @@ TESTFILES=$(TESTDIR)/lwip_unittests.c $(TESTDIR)/udp/test_udp.c $(TESTDIR)/ethar
 TESTOBJS=$(TESTFILES:.c=.o)
 
 %.o: %.c Makefile $(TESTDIR)/lwipopts.h
-	@$(CC) $(CFLAGS) -Wall -c $< -o $@
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 all: lwip_unittests
 .PHONY: all clean check
