@@ -35,7 +35,7 @@ LWIPDIR=$(CODEDIR)/src
 LDFLAGS:=$(LDFLAGS) -lcheck
 CFLAGS:=$(CFLAGS) -DLWIP_UNIX_EMPTY_ASSERT -I/usr/include/check -I$(LWIPDIR)/../test/unit \
 	-I$(LWIPDIR)/include -I$(LWIPDIR)/include/ipv4 \
-	-I$(LWIPDIR)/include/ipv6 -Iunix/include -I. -I../include
+	-I$(LWIPDIR)/include/ipv6 -Iunix/include -I. -I../include 
 
 COREFILES=$(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c \
 	$(LWIPDIR)/core/pbuf.c $(LWIPDIR)/core/raw.c \
@@ -59,7 +59,7 @@ TESTFILES=$(TESTDIR)/lwip_unittests.c $(TESTDIR)/udp/test_udp.c $(TESTDIR)/ethar
 TESTOBJS=$(TESTFILES:.c=.o)
 
 %.o: %.c Makefile $(TESTDIR)/lwipopts.h
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -Wall -fprofile-arcs -ftest-coverage -c $< -o $@
 
 all: lwip_unittests
 .PHONY: all clean check
