@@ -35,23 +35,34 @@ LWIPDIR=$(CODEDIR)/src
 LDFLAGS:=$(LDFLAGS) -lcheck -lgcov -coverage
 CFLAGS:=$(CFLAGS) -DLWIP_UNIX_EMPTY_ASSERT -I/usr/include/check -I$(LWIPDIR)/../test/unit \
 	-I$(LWIPDIR)/include -I$(LWIPDIR)/include/ipv4 \
-	-I$(LWIPDIR)/include/ipv6 -Iunix/include -I. -I../include \
+	-I$(LWIPDIR)/include/ipv6 \
+	-Iunix/include -I. -I../include \
 	-fprofile-arcs -ftest-coverage
 
-COREFILES=$(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c \
-	$(LWIPDIR)/core/pbuf.c $(LWIPDIR)/core/raw.c \
-	$(LWIPDIR)/core/stats.c $(LWIPDIR)/core/sys.c \
-        $(LWIPDIR)/core/tcp.c $(LWIPDIR)/core/tcp_in.c \
-        $(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/udp.c $(LWIPDIR)/core/dhcp.c \
-	$(LWIPDIR)/core/init.c $(LWIPDIR)/core/timers.c $(LWIPDIR)/core/def.c \
-	$(LWIPDIR)/core/inet_chksum.c $(LWIPDIR)/netif/etharp.c
+APIFILES=$(LWIPDIR)/api/api_lib.c $(LWIPDIR)/api/api_msg.c $(LWIPDIR)/api/err.c $(LWIPDIR)/api/netbuf.c \
+	$(LWIPDIR)/api/netdb.c $(LWIPDIR)/api/netifapi.c $(LWIPDIR)/api/pppapi.c $(LWIPDIR)/api/sockets.c $(LWIPDIR)/api/tcpip.c
+	
+COREFILES=$(LWIPDIR)/core/def.c $(LWIPDIR)/core/dhcp.c $(LWIPDIR)/core/dns.c $(LWIPDIR)/core/inet_chksum.c \
+	$(LWIPDIR)/core/init.c $(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c $(LWIPDIR)/core/pbuf.c \
+	$(LWIPDIR)/core/raw.c $(LWIPDIR)/core/stats.c $(LWIPDIR)/core/sys.c $(LWIPDIR)/core/tcp.c $(LWIPDIR)/core/tcp_in.c \
+	$(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/timers.c $(LWIPDIR)/core/udp.c 
+
+NETIFFILES=$(LWIPDIR)/netif/etharp.c $(LWIPDIR)/netif/ethernetif.c $(LWIPDIR)/netif/slipif.c 
+
 CORE4FILES=$(LWIPDIR)/core/ipv4/icmp.c $(LWIPDIR)/core/ipv4/ip4.c \
-	$(LWIPDIR)/core/ipv4/ip4_addr.c $(LWIPDIR)/core/ipv4/ip_frag.c 
+	$(LWIPDIR)/core/ipv4/ip4_addr.c $(LWIPDIR)/core/ipv4/ip_frag.c
+	
+CORE6FILES=$(LWIPDIR)/core/ipv6/dhcp6.c $(LWIPDIR)/core/ipv6/ethip6.c $(LWIPDIR)/core/ipv6/icmp6.c \
+	$(LWIPDIR)/core/ipv6/inet6.c $(LWIPDIR)/core/ipv6/ip6.c $(LWIPDIR)/core/ipv6/ip6_addr.c \
+	$(LWIPDIR)/core/ipv6/ip6_frag.c $(LWIPDIR)/core/ipv6/mld6.c $(LWIPDIR)/core/ipv6/nd6.c 
+
+CORESNMPFILES=$(LWIPDIR)/core/snmp/asn1_dec.c $(LWIPDIR)/core/snmp/asn1_enc.c $(LWIPDIR)/core/snmp/mib2.c \
+	$(LWIPDIR)/core/snmp/mib_structs.c $(LWIPDIR)/core/snmp/msg_in.c $(LWIPDIR)/core/snmp/msg_out.c 
 
 ARCHFILES=sys_arch.c
 
 # LWIPFILES: All the above.
-LWIPFILES=$(COREFILES) $(CORE4FILES) $(ARCHFILES)
+LWIPFILES=$(APIFILES) $(COREFILES) $(NETIFFILES) $(CORESNMPFILES) $(CORE4FILES) $(CORE6FILES) $(ARCHFILES)
 LWIPOBJS=$(LWIPFILES:.c=.o)
 
 TESTDIR=$(CODEDIR)/test/unit
