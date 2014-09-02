@@ -485,6 +485,9 @@ test_init(void * arg)
   init_sem = (sys_sem_t*)arg;
 #endif /* NO_SYS */
 
+  /* init randomizer again (seed per thread) */
+  srand(time(0));
+
   /* init network interfaces */
   msvc_netif_init();
 

@@ -34,8 +34,7 @@ LWIPDIR=$(CODEDIR)/src
 
 LDFLAGS:=$(LDFLAGS) -lcheck -lgcov -coverage
 CFLAGS:=$(CFLAGS) -DLWIP_UNIX_EMPTY_ASSERT -I/usr/include/check -I$(LWIPDIR)/../test/unit \
-	-I$(LWIPDIR)/include -I$(LWIPDIR)/include/ipv4 \
-	-I$(LWIPDIR)/include/ipv6 \
+	-I$(LWIPDIR)/include \
 	-Iunix/include -I. -I../include \
 	-fprofile-arcs -ftest-coverage
 

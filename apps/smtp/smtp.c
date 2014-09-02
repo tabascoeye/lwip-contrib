@@ -14,8 +14,9 @@
  * static void my_smtp_test(void)
  * {
  *   smtp_set_server_addr("mymailserver.org");
+ *   -> set both username and password as NULL if no auth needed
  *   smtp_set_auth("username", "password");
- *   smtp_send_mail("recipient", "sender", "subject", "body", my_smtp_result_fn,
+ *   smtp_send_mail("sender", "recipient", "subject", "body", my_smtp_result_fn,
  *                  some_argument);
  * }
  *
@@ -34,6 +35,7 @@
 #include "lwip/dns.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 /** This is simple SMTP client for raw API.
  * It is a minimal implementation of SMTP as specified in RFC 5321.
@@ -283,16 +285,15 @@ static char smtp_auth_plain[SMTP_MAX_USERNAME_LEN + SMTP_MAX_PASS_LEN + 3];
 /** Length of smtp_auth_plain string (cannot use strlen since it includes \0) */
 static size_t smtp_auth_plain_len;
 
-static size_t max_tx_buf_len;
-static size_t max_rx_buf_len;
-
 static err_t  smtp_verify(const char *data, size_t data_len, u8_t linebreaks_allowed);
 static err_t  smtp_tcp_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err);
 static void   smtp_tcp_err(void *arg, err_t err);
 static err_t  smtp_tcp_poll(void *arg, struct tcp_pcb *pcb);
 static err_t  smtp_tcp_sent(void *arg, struct tcp_pcb *pcb, u16_t len);
 static err_t  smtp_tcp_connected(void *arg, struct tcp_pcb *pcb, err_t err);
+#if LWIP_DNS
 static void   smtp_dns_found(const char* hostname, ip_addr_t *ipaddr, void *arg);
+#endif /* LWIP_DNS */
 static size_t smtp_base64_encode(char* target, size_t target_len, const char* source, size_t source_len);
 static enum   smtp_session_state smtp_prepare_mail(struct smtp_session *s, u16_t *tx_buf_len);
 static void   smtp_send_body(struct smtp_session *s, struct tcp_pcb *pcb);
@@ -556,7 +557,7 @@ smtp_send_mail_static(const char *from, const char* to, const char* subject,
   struct smtp_session* s;
   size_t len;
 
-  s = mem_malloc(sizeof(struct smtp_session));
+  s = (struct smtp_session*)mem_malloc(sizeof(struct smtp_session));
   if (s == NULL) {
     return ERR_MEM;
   }
@@ -604,7 +605,7 @@ smtp_send_mail_static(const char *from, const char* to, const char* subject,
 void
 smtp_send_mail_int(void *arg)
 {
-  struct smtp_send_request *req = arg;
+  struct smtp_send_request *req = (struct smtp_send_request*)arg;
   err_t err;
 
   LWIP_ASSERT("smtp_send_mail_int: no argument given", arg != NULL);
@@ -699,7 +700,7 @@ smtp_tcp_err(void *arg, err_t err)
   LWIP_UNUSED_ARG(err);
   if (arg != NULL) {
     LWIP_DEBUGF(SMTP_DEBUG_WARN_STATE, ("smtp_tcp_err: connection reset by remote host\n"));
-    smtp_free(arg, SMTP_RESULT_ERR_CLOSED, 0, err);
+    smtp_free((struct smtp_session*)arg, SMTP_RESULT_ERR_CLOSED, 0, err);
   }
 }
 
@@ -708,7 +709,7 @@ static err_t
 smtp_tcp_poll(void *arg, struct tcp_pcb *pcb)
 {
   if (arg != NULL) {
-    struct smtp_session *s = arg;
+    struct smtp_session *s = (struct smtp_session*)arg;
     if (s->timer != 0) {
       s->timer--;
     }
@@ -758,6 +759,7 @@ smtp_tcp_connected(void *arg, struct tcp_pcb *pcb, err_t err)
   return ERR_OK;
 }
 
+#if LWIP_DNS
 /** DNS callback
  * If ipaddr is non-NULL, resolving succeeded, otherwise it failed.
  */
@@ -786,6 +788,7 @@ smtp_dns_found(const char* hostname, ip_addr_t *ipaddr, void *arg)
   }
   smtp_close(pcb->callback_arg, pcb, result, 0, err);
 }
+#endif /* LWIP_DNS */
 
 #if SMTP_SUPPORT_AUTH_AUTH || SMTP_SUPPORT_AUTH_LOGIN
 
