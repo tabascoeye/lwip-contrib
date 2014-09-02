@@ -1,0 +1,4 @@
+*.o
+*.gcda
+*.gcno*
+ports/unix/check/lwip_unittests
