@@ -35,6 +35,7 @@ LWIPDIR=$(CODEDIR)/src
 LDFLAGS:=$(LDFLAGS) -lcheck -lgcov -coverage
 CFLAGS:=$(CFLAGS) -DLWIP_UNIX_EMPTY_ASSERT -I/usr/include/check -I$(LWIPDIR)/../test/unit \
 	-I$(LWIPDIR)/include \
+	-I$(LWIPDIR)/include/netif \
 	-Iunix/include -I. -I../include \
 	-fprofile-arcs -ftest-coverage
 
@@ -49,7 +50,8 @@ COREFILES=$(LWIPDIR)/core/def.c $(LWIPDIR)/core/dhcp.c $(LWIPDIR)/core/dns.c $(L
 NETIFFILES=$(LWIPDIR)/netif/etharp.c $(LWIPDIR)/netif/ethernetif.c $(LWIPDIR)/netif/slipif.c 
 
 CORE4FILES=$(LWIPDIR)/core/ipv4/icmp.c $(LWIPDIR)/core/ipv4/ip4.c \
-	$(LWIPDIR)/core/ipv4/ip4_addr.c $(LWIPDIR)/core/ipv4/ip_frag.c
+	$(LWIPDIR)/core/ipv4/ip4_addr.c $(LWIPDIR)/core/ipv4/ip_frag.c \
+	$(LWIPDIR)/core/ipv4/autoip.c $(LWIPDIR)/core/ipv4/igmp.c \
 	
 CORE6FILES=$(LWIPDIR)/core/ipv6/dhcp6.c $(LWIPDIR)/core/ipv6/ethip6.c $(LWIPDIR)/core/ipv6/icmp6.c \
 	$(LWIPDIR)/core/ipv6/inet6.c $(LWIPDIR)/core/ipv6/ip6.c $(LWIPDIR)/core/ipv6/ip6_addr.c \
@@ -77,6 +79,20 @@ all: lwip_unittests
 
 clean:
 	@rm -f lwip_unittests $(LWIPOBJS) $(TESTOBJS)
+	@rm -f $(LWIPDIR)/api/*.gc*
+	@rm -f $(LWIPDIR)/core/*.gc*
+	@rm -f $(LWIPDIR)/core/ipv4/*.gc*
+	@rm -f $(LWIPDIR)/core/ipv6/*.gc*
+	@rm -f $(LWIPDIR)/core/snmp/*.gc*
+	@rm -f $(LWIPDIR)/netif/*.gc*
+	@rm -f $(LWIPDIR)/netif/ppp/*.gc*
+	@rm -f $(LWIPDIR)/netif/ppp/polarssl/*.gc*
+	@rm -f $(CODEDIR)/test/unit/*.gc*
+	@rm -f $(CODEDIR)/test/unit/core/*.gc*
+	@rm -f $(CODEDIR)/test/unit/dhcp/*.gc*
+	@rm -f $(CODEDIR)/test/unit/etharp/*.gc*
+	@rm -f $(CODEDIR)/test/unit/tcp/*.gc*
+	@rm -f $(CODEDIR)/test/unit/udp/*.gc*
 
 lwip_unittests: $(TESTOBJS) $(LWIPOBJS)
 	@$(CC) $(TESTOBJS) $(LWIPOBJS) -o lwip_unittests $(LDFLAGS)
