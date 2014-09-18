@@ -61,19 +61,20 @@ void
 tcpdump(struct pbuf *p)
 {
   struct ip_hdr *iphdr;
-  struct tcp_hdr *tcphdr;
 #if LWIP_UDP
   struct udp_hdr *udphdr;
 #endif
+#if LWIP_TCP
+  struct tcp_hdr *tcphdr;
   char flags[5];
   int i;
   int len;
-  int offset;
+  int offset
+#endif;
 
   if (file == NULL) {
     return;
   }
-#ifdef IPv4
   iphdr = (struct ip_hdr *)p->payload;
   switch (IPH_PROTO(iphdr)) {
 #if LWIP_TCP
@@ -85,11 +86,11 @@ tcpdump(struct pbuf *p)
                            (ip_addr_t *)&(iphdr->src),
                            (ip_addr_t *)&(iphdr->dest)) != 0) {
       LWIP_DEBUGF(TCPDUMP_DEBUG, ("tcpdump: IP checksum failed!\n"));
-      /*    fprintf(file, "chksum 0x%lx ", tcphdr->chksum);
-	    tcphdr->chksum = 0;
-	    fprintf(file, "should be 0x%lx ", inet_chksum_pseudo(p, (ip_addr_t *)&(iphdr->src),
-	    (ip_addr_t *)&(iphdr->dest),
-	    IP_PROTO_TCP, p->tot_len));*/
+      /*
+      fprintf(file, "chksum 0x%lx ", tcphdr->chksum);
+      tcphdr->chksum = 0;
+      fprintf(file, "should be 0x%lx ", inet_chksum_pseudo(p, (ip_addr_t *)&(iphdr->src),
+              (ip_addr_t *)&(iphdr->dest), IP_PROTO_TCP, p->tot_len));*/
       fprintf(file, "!chksum ");
     }
 
@@ -114,32 +115,27 @@ tcpdump(struct pbuf *p)
 
 
     fprintf(file, "%d.%d.%d.%d.%u > %d.%d.%d.%d.%u: ",
-	    (int)(ntohl(iphdr->src.addr) >> 24) & 0xff,
-	    (int)(ntohl(iphdr->src.addr) >> 16) & 0xff,
-	    (int)(ntohl(iphdr->src.addr) >> 8) & 0xff,
-	    (int)(ntohl(iphdr->src.addr) >> 0) & 0xff,
-	    ntohs(tcphdr->src),
-	  (int)(ntohl(iphdr->dest.addr) >> 24) & 0xff,
-	    (int)(ntohl(iphdr->dest.addr) >> 16) & 0xff,
-	    (int)(ntohl(iphdr->dest.addr) >> 8) & 0xff,
-	    (int)(ntohl(iphdr->dest.addr) >> 0) & 0xff,
-	    ntohs(tcphdr->dest));
+           (int)(ntohl(iphdr->src.addr) >> 24) & 0xff,
+           (int)(ntohl(iphdr->src.addr) >> 16) & 0xff,
+           (int)(ntohl(iphdr->src.addr) >> 8) & 0xff,
+           (int)(ntohl(iphdr->src.addr) >> 0) & 0xff,
+           ntohs(tcphdr->src),
+           (int)(ntohl(iphdr->dest.addr) >> 24) & 0xff,
+           (int)(ntohl(iphdr->dest.addr) >> 16) & 0xff,
+           (int)(ntohl(iphdr->dest.addr) >> 8) & 0xff,
+           (int)(ntohl(iphdr->dest.addr) >> 0) & 0xff,
+           ntohs(tcphdr->dest));
     offset = TCPH_HDRLEN(tcphdr);
 
     len = ntohs(IPH_LEN(iphdr)) - offset * 4 - IP_HLEN;
     if (len != 0 || flags[0] != '.') {
-      fprintf(file, "%s %u:%u(%u) ",
-	      flags,
-	      ntohl(tcphdr->seqno),
-	      ntohl(tcphdr->seqno) + len,
-	      len);
+      fprintf(file, "%s %u:%u(%u) ", flags, ntohl(tcphdr->seqno),
+              ntohl(tcphdr->seqno) + len, len);
     }
     if (TCPH_FLAGS(tcphdr) & TCP_ACK) {
-      fprintf(file, "ack %u ",
-	      ntohl(tcphdr->ackno));
+      fprintf(file, "ack %u ", ntohl(tcphdr->ackno));
     }
-    fprintf(file, "wnd %u\n",
-	    ntohs(tcphdr->wnd));
+    fprintf(file, "wnd %u\n", ntohs(tcphdr->wnd));
 
     fflush(file);
 
@@ -156,25 +152,25 @@ tcpdump(struct pbuf *p)
                            (ip_addr_t *)&(iphdr->src),
                            (ip_addr_t *)&(iphdr->dest)) != 0) {
       LWIP_DEBUGF(TCPDUMP_DEBUG, ("tcpdump: IP checksum failed!\n"));
-      /*    fprintf(file, "chksum 0x%lx ", tcphdr->chksum);
-	    tcphdr->chksum = 0;
-	    fprintf(file, "should be 0x%lx ", inet_chksum_pseudo(p, (ip_addr_t *)&(iphdr->src),
-	    (ip_addr_t *)&(iphdr->dest),
-	    IP_PROTO_TCP, p->tot_len));*/
+      /*
+      fprintf(file, "chksum 0x%lx ", tcphdr->chksum);
+      tcphdr->chksum = 0;
+      fprintf(file, "should be 0x%lx ", inet_chksum_pseudo(p, (ip_addr_t *)&(iphdr->src),
+             (ip_addr_t *)&(iphdr->dest), IP_PROTO_TCP, p->tot_len));*/
       fprintf(file, "!chksum ");
     }
 
     fprintf(file, "%d.%d.%d.%d.%u > %d.%d.%d.%d.%u: ",
-	    (int)(ntohl(iphdr->src.addr) >> 24) & 0xff,
-	    (int)(ntohl(iphdr->src.addr) >> 16) & 0xff,
-	    (int)(ntohl(iphdr->src.addr) >> 8) & 0xff,
-	    (int)(ntohl(iphdr->src.addr) >> 0) & 0xff,
-	    ntohs(udphdr->src),
-	  (int)(ntohl(iphdr->dest.addr) >> 24) & 0xff,
-	    (int)(ntohl(iphdr->dest.addr) >> 16) & 0xff,
-	    (int)(ntohl(iphdr->dest.addr) >> 8) & 0xff,
-	    (int)(ntohl(iphdr->dest.addr) >> 0) & 0xff,
-	    ntohs(udphdr->dest));
+            (int)(ntohl(iphdr->src.addr) >> 24) & 0xff,
+            (int)(ntohl(iphdr->src.addr) >> 16) & 0xff,
+            (int)(ntohl(iphdr->src.addr) >> 8) & 0xff,
+            (int)(ntohl(iphdr->src.addr) >> 0) & 0xff,
+            (int)(ntohl(iphdr->dest.addr) >> 24) & 0xff,
+            ntohs(udphdr->src),
+            (int)(ntohl(iphdr->dest.addr) >> 16) & 0xff,
+            (int)(ntohl(iphdr->dest.addr) >> 8) & 0xff,
+            (int)(ntohl(iphdr->dest.addr) >> 0) & 0xff,
+            ntohs(udphdr->dest));
     fprintf(file, "U ");
     len = ntohs(IPH_LEN(iphdr)) - sizeof(struct udp_hdr) - IP_HLEN;
     fprintf(file, " %d\n", len);
@@ -189,7 +185,6 @@ tcpdump(struct pbuf *p)
     break;
 
   }
-#endif /* IPv4 */
 }
 /*-----------------------------------------------------------------------------------*/
 
