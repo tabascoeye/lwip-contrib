@@ -119,6 +119,20 @@ unsigned char precalcChksum = 0;
 struct file_entry* first_file = NULL;
 struct file_entry* last_file = NULL;
 
+static void print_usage(void)
+{
+  printf(" Usage: htmlgen [targetdir] [-s] [-i] [-f:<filename>]" NEWLINE NEWLINE);
+  printf("   targetdir: relative or absolute path to files to convert" NEWLINE);
+  printf("   switch -s: toggle processing of subdirectories (default is on)" NEWLINE);
+  printf("   switch -e: exclude HTTP header from file (header is created at runtime, default is off)" NEWLINE);
+  printf("   switch -11: include HTTP 1.1 header (1.0 is default)" NEWLINE);
+  printf("   switch -nossi: no support for SSI (cannot calculate Content-Length for SSI)" NEWLINE);
+  printf("   switch -c: precalculate checksums for all pages (default is off)" NEWLINE);
+  printf("   switch -f: target filename (default is \"fsdata.c\")" NEWLINE);
+  printf("   if targetdir not specified, htmlgen will attempt to" NEWLINE);
+  printf("   process files in subdirectory 'fs'" NEWLINE);
+}
+
 int main(int argc, char *argv[])
 {
   char path[MAX_PATH_LEN];
@@ -139,6 +153,9 @@ int main(int argc, char *argv[])
 
   strcpy(path, "fs");
   for(i = 1; i < argc; i++) {
+    if (argv[i] == NULL) {
+      continue;
+    }
     if (argv[i][0] == '-') {
       if (strstr(argv[i], "-s")) {
         processSubs = 0;
@@ -154,7 +171,13 @@ int main(int argc, char *argv[])
         strncpy(targetfile, &argv[i][3], sizeof(targetfile) - 1);
         targetfile[sizeof(targetfile) - 1] = 0;
         printf("Writing to file \"%s\"\n", targetfile);
+      } else if ((strstr(argv[i], "-?")) || (strstr(argv[i], "-h"))) {
+        print_usage();
+        exit(0);
       }
+    } else if ((argv[i][0] == '/') && (argv[i][1] == '?') && (argv[i][2] == 0)) {
+      print_usage();
+      exit(0);
     } else {
       strncpy(path, argv[i], sizeof(path)-1);
       path[sizeof(path)-1] = 0;
@@ -171,16 +194,7 @@ int main(int argc, char *argv[])
   if (!CHDIR_SUCCEEDED(CHDIR(path))) {
     /* if no subdir named 'fs' (or the one which was given) exists, spout usage verbiage */
     printf(" Failed to open directory \"%s\"." NEWLINE NEWLINE, path);
-    printf(" Usage: htmlgen [targetdir] [-s] [-i] [-f:<filename>]" NEWLINE NEWLINE);
-    printf("   targetdir: relative or absolute path to files to convert" NEWLINE);
-    printf("   switch -s: toggle processing of subdirectories (default is on)" NEWLINE);
-    printf("   switch -e: exclude HTTP header from file (header is created at runtime, default is off)" NEWLINE);
-    printf("   switch -11: include HTTP 1.1 header (1.0 is default)" NEWLINE);
-    printf("   switch -nossi: no support for SSI (cannot calculate Content-Length for SSI)" NEWLINE);
-    printf("   switch -c: precalculate checksums for all pages (default is off)" NEWLINE);
-    printf("   switch -f: target filename (default is \"fsdata.c\")" NEWLINE);
-    printf("   if targetdir not specified, htmlgen will attempt to" NEWLINE);
-    printf("   process files in subdirectory 'fs'" NEWLINE);
+    print_usage();
     exit(-1);
   }
   CHDIR(appPath);
@@ -584,7 +598,7 @@ int file_write_http_header(FILE *data_file, const char *filename, int file_size,
 {
   int i = 0;
   int response_type = HTTP_HDR_OK;
-  int file_type = HTTP_HDR_DEFAULT_TYPE;
+  const char* file_type;
   const char *cur_string;
   size_t cur_len;
   int written = 0;
@@ -656,10 +670,11 @@ int file_write_http_header(FILE *data_file, const char *filename, int file_size,
   }
   if((file_ext == NULL) || (*file_ext == 0)) {
     printf("failed to get extension for file \"%s\", using default.\n", filename);
+    file_type = HTTP_HDR_DEFAULT_TYPE;
   } else {
     for(j = 0; j < NUM_HTTP_HEADERS; j++) {
       if(!strcmp(file_ext, g_psHTTPHeaders[j].extension)) {
-        file_type = g_psHTTPHeaders[j].headerIndex;
+        file_type = g_psHTTPHeaders[j].content_type;
         break;
       }
     }
@@ -713,7 +728,7 @@ int file_write_http_header(FILE *data_file, const char *filename, int file_size,
     }
   }
 
-  cur_string = g_psHTTPHeaderStrings[file_type];
+  cur_string = file_type;
   cur_len = strlen(cur_string);
   fprintf(data_file, NEWLINE "/* \"%s\" (%d bytes) */" NEWLINE, cur_string, cur_len);
   written += file_put_ascii(data_file, cur_string, cur_len, &i);
