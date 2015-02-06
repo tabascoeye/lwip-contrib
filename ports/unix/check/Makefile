@@ -32,7 +32,7 @@
 CODEDIR=../../../../lwip
 LWIPDIR=$(CODEDIR)/src
 
-LDFLAGS:=$(LDFLAGS) -lcheck -lgcov -coverage
+LDFLAGS:=$(LDFLAGS) -lcheck -lm -lpthread -lrt -lgcov -coverage
 CFLAGS:=$(CFLAGS) -DLWIP_UNIX_EMPTY_ASSERT -I/usr/include/check -I$(LWIPDIR)/../test/unit \
 	-I$(LWIPDIR)/include \
 	-I$(LWIPDIR)/include/netif \
@@ -42,10 +42,13 @@ CFLAGS:=$(CFLAGS) -DLWIP_UNIX_EMPTY_ASSERT -I/usr/include/check -I$(LWIPDIR)/../
 APIFILES=$(LWIPDIR)/api/api_lib.c $(LWIPDIR)/api/api_msg.c $(LWIPDIR)/api/err.c $(LWIPDIR)/api/netbuf.c \
 	$(LWIPDIR)/api/netdb.c $(LWIPDIR)/api/netifapi.c $(LWIPDIR)/api/pppapi.c $(LWIPDIR)/api/sockets.c $(LWIPDIR)/api/tcpip.c
 	
-COREFILES=$(LWIPDIR)/core/def.c $(LWIPDIR)/core/dhcp.c $(LWIPDIR)/core/dns.c $(LWIPDIR)/core/inet_chksum.c \
-	$(LWIPDIR)/core/init.c $(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c $(LWIPDIR)/core/pbuf.c \
-	$(LWIPDIR)/core/raw.c $(LWIPDIR)/core/stats.c $(LWIPDIR)/core/sys.c $(LWIPDIR)/core/tcp.c $(LWIPDIR)/core/tcp_in.c \
-	$(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/timers.c $(LWIPDIR)/core/udp.c 
+COREFILES=$(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c \
+	$(LWIPDIR)/core/pbuf.c $(LWIPDIR)/core/raw.c \
+	$(LWIPDIR)/core/stats.c $(LWIPDIR)/core/sys.c \
+	$(LWIPDIR)/core/tcp.c $(LWIPDIR)/core/tcp_in.c \
+	$(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/udp.c $(LWIPDIR)/core/dhcp.c \
+	$(LWIPDIR)/core/init.c $(LWIPDIR)/core/timers.c $(LWIPDIR)/core/def.c \
+	$(LWIPDIR)/core/inet_chksum.c $(LWIPDIR)/netif/etharp.c
 
 NETIFFILES=$(LWIPDIR)/netif/etharp.c $(LWIPDIR)/netif/ethernetif.c $(LWIPDIR)/netif/slipif.c 
 
