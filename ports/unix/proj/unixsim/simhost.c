@@ -60,7 +60,7 @@
 #include "netif/tcpdump.h"
 
 #if PPP_SUPPORT
-#include "netif/ppp/ppp.h"
+#include "netif/ppp/pppos.h"
 #define PPP_PTY_TEST 1
 #include <termios.h>
 #endif
@@ -338,6 +338,9 @@ ping_thread(void *arg)
 #endif
 
 struct netif netif;
+#if PPP_SUPPORT
+struct netif pppos_netif;
+#endif
 
 static void
 init_netifs(void)
@@ -356,7 +359,7 @@ init_netifs(void)
       exit(1);
   }
 
-  ppp = ppp_new();
+  ppp = pppos_create(&pppos_netif, ppp_sio, ppp_link_status_cb, NULL);
   if (!ppp)
   {
       printf("Could not create PPP control interface");
@@ -366,27 +369,20 @@ init_netifs(void)
   ppp_set_auth(ppp, PPPAUTHTYPE_CHAP, "lwip", "mysecret");
 #endif
 
-  ppp_over_serial_create(ppp, ppp_sio, ppp_link_status_cb, NULL);
-  ppp_open(ppp, 0);
+  ppp_connect(ppp, 0);
 #endif /* PPP_SUPPORT */
   
 #if LWIP_DHCP
-  {
-    IP4_ADDR(&gw, 0,0,0,0);
-    IP4_ADDR(&ipaddr, 0,0,0,0);
-    IP4_ADDR(&netmask, 0,0,0,0);
-
-    netif_add(&netif, &ipaddr, &netmask, &gw, NULL, tapif_init,
-              tcpip_input);
-    netif_set_default(&netif);
-    dhcp_start(&netif);
-  }
-#else
+  IP4_ADDR(&gw, 0,0,0,0);
+  IP4_ADDR(&ipaddr, 0,0,0,0);
+  IP4_ADDR(&netmask, 0,0,0,0);
+#endif
   
   netif_set_default(netif_add(&netif,&ipaddr, &netmask, &gw, NULL, tapif_init,
                   tcpip_input));
   netif_set_up(&netif);
-
+#if LWIP_DHCP
+  dhcp_start(&netif);
 #endif
 #if LWIP_IPV6
   netif_create_ip6_linklocal_address(&netif, 1);
