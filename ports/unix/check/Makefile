@@ -48,7 +48,7 @@ COREFILES=$(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c \
 	$(LWIPDIR)/core/tcp.c $(LWIPDIR)/core/tcp_in.c \
 	$(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/udp.c $(LWIPDIR)/core/dhcp.c \
 	$(LWIPDIR)/core/init.c $(LWIPDIR)/core/timers.c $(LWIPDIR)/core/def.c \
-	$(LWIPDIR)/core/inet_chksum.c $(LWIPDIR)/netif/etharp.c
+	$(LWIPDIR)/core/inet_chksum.c 
 
 NETIFFILES=$(LWIPDIR)/netif/etharp.c $(LWIPDIR)/netif/ethernetif.c $(LWIPDIR)/netif/slipif.c 
 
