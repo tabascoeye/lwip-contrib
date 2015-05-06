@@ -50,6 +50,7 @@
 #include "lwip/dns.h"
 #include "lwip/ip_addr.h"
 #include "lwip/pbuf.h"
+#include "lwip/dhcp.h"
 
 #include <string.h>
 #include <time.h>
@@ -219,8 +220,10 @@
 #define SNTP_OFFSET_RECEIVE_TIME    32
 #define SNTP_OFFSET_TRANSMIT_TIME   40
 
-/* number of seconds between 1900 and 1970 */
+/* number of seconds between 1900 and 1970 (MSB=1)*/
 #define DIFF_SEC_1900_1970         (2208988800UL)
+/* number of seconds between 1970 and Feb 7, 2036 (6:28:16 UTC) (MSB=0) */
+#define DIFF_SEC_1970_2036         (2085978496UL)
 
 /**
  * SNTP packet format (without optional fields)
@@ -266,7 +269,9 @@ struct sntp_server {
 };
 static struct sntp_server sntp_servers[SNTP_MAX_SERVERS];
 
+#if SNTP_GET_SERVERS_FROM_DHCP
 static u8_t sntp_set_servers_from_dhcp;
+#endif /* SNTP_GET_SERVERS_FROM_DHCP */
 #if SNTP_SUPPORT_MULTIPLE_SERVERS
 /** The currently used server (initialized to 0) */
 static u8_t sntp_current_server;
@@ -301,23 +306,27 @@ static void
 sntp_process(u32_t *receive_timestamp)
 {
   /* convert SNTP time (1900-based) to unix GMT time (1970-based)
-   * @todo: if MSB is 1, SNTP time is 2036-based!
+   * if MSB is 0, SNTP time is 2036-based!
    */
-  time_t t = (ntohl(receive_timestamp[0]) - DIFF_SEC_1900_1970);
+  u32_t rx_secs = ntohl(receive_timestamp[0]);
+  int is_1900_based = ((rx_secs & 0x80000000) != 0);
+  u32_t t = is_1900_based ? (rx_secs - DIFF_SEC_1900_1970) : (rx_secs + DIFF_SEC_1970_2036);
+  time_t tim = t;
 
 #if SNTP_CALC_TIME_US
   u32_t us = ntohl(receive_timestamp[1]) / 4295;
   SNTP_SET_SYSTEM_TIME_US(t, us);
   /* display local time from GMT time */
-  LWIP_DEBUGF(SNTP_DEBUG_TRACE, ("sntp_process: %s, %"U32_F" us", ctime(&t), us));
+  LWIP_DEBUGF(SNTP_DEBUG_TRACE, ("sntp_process: %s, %"U32_F" us", ctime(&tim), us));
 
 #else /* SNTP_CALC_TIME_US */
 
   /* change system time and/or the update the RTC clock */
   SNTP_SET_SYSTEM_TIME(t);
   /* display local time from GMT time */
-  LWIP_DEBUGF(SNTP_DEBUG_TRACE, ("sntp_process: %s", ctime(&t)));
+  LWIP_DEBUGF(SNTP_DEBUG_TRACE, ("sntp_process: %s", ctime(&tim)));
 #endif /* SNTP_CALC_TIME_US */
+  LWIP_UNUSED_ARG(tim);
 }
 
 /**
@@ -571,7 +580,7 @@ sntp_request(void *arg)
 #if SNTP_SERVER_DNS
   if (sntp_servers[sntp_current_server].name) {
     /* always resolve the name and rely on dns-internal caching & timeout */
-    ip_addr_set_any(&sntp_servers[sntp_current_server].addr);
+    ip_addr_set_zero(&sntp_servers[sntp_current_server].addr);
     err = dns_gethostbyname(sntp_servers[sntp_current_server].name, &sntp_server_address,
       sntp_dns_found, NULL);
     if (err == ERR_INPROGRESS) {
@@ -585,12 +594,12 @@ sntp_request(void *arg)
 #endif /* SNTP_SERVER_DNS */
   {
     sntp_server_address = sntp_servers[sntp_current_server].addr;
-    err = (ip_addr_isany(&sntp_server_address)) ? ERR_ARG : ERR_OK;
+    err = (ip_addr_isany_val(sntp_server_address)) ? ERR_ARG : ERR_OK;
   }
 
   if (err == ERR_OK) {
-    LWIP_DEBUGF(SNTP_DEBUG_TRACE, ("sntp_request: current server address is %u.%u.%u.%u\n",
-      ip4_addr1(&sntp_server_address), ip4_addr2(&sntp_server_address), ip4_addr3(&sntp_server_address), ip4_addr4(&sntp_server_address)));
+    LWIP_DEBUGF(SNTP_DEBUG_TRACE, ("sntp_request: current server address is %s\n",
+      ipaddr_ntoa(&sntp_server_address)));
     sntp_send_request(&sntp_server_address);
   } else {
     /* address conversion failed, try another server */
@@ -664,13 +673,13 @@ sntp_servermode_dhcp(int set_servers_from_dhcp)
  * @param dnsserver IP address of the NTP server to set
  */
 void
-sntp_setserver(u8_t idx, ip_addr_t *server)
+sntp_setserver(u8_t idx, const ip_addr_t *server)
 {
   if (idx < SNTP_MAX_SERVERS) {
     if (server != NULL) {
       sntp_servers[idx].addr = (*server);
     } else {
-      ip_addr_set_any(&sntp_servers[idx].addr);
+      ip_addr_set_zero(&sntp_servers[idx].addr);
     }
 #if SNTP_SERVER_DNS
     sntp_servers[idx].name = NULL;
@@ -686,7 +695,7 @@ sntp_setserver(u8_t idx, ip_addr_t *server)
  * @param dnsserver IP address of the NTP server to set
  */
 void
-dhcp_set_ntp_servers(u8_t num, ip_addr_t *server)
+dhcp_set_ntp_servers(u8_t num, const ip4_addr_t *server)
 {
   LWIP_DEBUGF(SNTP_DEBUG_TRACE, ("sntp: %s %u.%u.%u.%u as NTP server #%u via DHCP\n",
     (sntp_set_servers_from_dhcp ? "Got" : "Rejected"),
@@ -694,7 +703,9 @@ dhcp_set_ntp_servers(u8_t num, ip_addr_t *server)
   if (sntp_set_servers_from_dhcp && num) {
     u8_t i;
     for (i = 0; (i < num) && (i < SNTP_MAX_SERVERS); i++) {
-      sntp_setserver(i, &server[i]);
+      ip_addr_t addr;
+      ip_addr_copy_from_ip4(addr, server[i]);
+      sntp_setserver(i, &addr);
     }
     for (i = num; i < SNTP_MAX_SERVERS; i++) {
       sntp_setserver(i, NULL);

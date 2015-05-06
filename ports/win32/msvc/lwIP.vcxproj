@@ -81,10 +81,11 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -104,7 +105,7 @@
       <PrecompiledHeader>
       </PrecompiledHeader>
       <ProgramDataBaseFileName>$(IntDir)$(ProjectName).pdb</ProgramDataBaseFileName>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
@@ -320,7 +321,6 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\icmp6.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\igmp.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\inet.h" />
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\inet6.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\inet_chksum.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\init.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\ip.h" />

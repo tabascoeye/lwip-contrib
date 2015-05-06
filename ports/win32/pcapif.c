@@ -40,7 +40,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef _MSC_VER
+#pragma warning( push, 3 )
+#endif
 #include "pcap.h"
+#ifdef _MSC_VER
+#pragma warning ( pop )
+#endif
 
 #include "lwip/opt.h"
 
@@ -563,7 +569,7 @@ pcapif_low_level_init(struct netif *netif)
   memset(&guid, 0, sizeof(guid));
   PACKET_LIB_GET_ADAPTER_NETADDRESS(&netaddr);
   if (get_adapter_index_from_addr((struct in_addr *)&netaddr, guid, GUID_LEN) < 0) {
-     printf("ERROR initializing network adapter, failed to get GUID for network address %s\n", ip_ntoa(&netaddr));
+     printf("ERROR initializing network adapter, failed to get GUID for network address %s\n", ipaddr_ntoa(&netaddr));
      LWIP_ASSERT("ERROR initializing network adapter, failed to get GUID for network address!", 0);
      return;
   }
@@ -828,17 +834,16 @@ pcapif_init(struct netif *netif)
   netif->name[0] = IFNAME0;
   netif->name[1] = (char)(IFNAME1 + local_index);
   netif->linkoutput = pcapif_low_level_output;
+#if LWIP_IPV4
 #if LWIP_ARP
   netif->output = etharp_output;
+#else /* LWIP_ARP */
+  netif->output = NULL; /* not used for PPPoE */
+#endif /* LWIP_ARP */
+#endif /* LWIP_IPV4 */
 #if LWIP_IPV6
   netif->output_ip6 = ethip6_output;
 #endif /* LWIP_IPV6 */
-#else /* LWIP_ARP */
-  netif->output = NULL; /* not used for PPPoE */
-#if LWIP_IPV6
-  netif->output_ip6 = NULL; /* not used for PPPoE */
-#endif /* LWIP_IPV6 */
-#endif /* LWIP_ARP */
 #if LWIP_NETIF_HOSTNAME
   /* Initialize interface hostname */
   netif_set_hostname(netif, "lwip");

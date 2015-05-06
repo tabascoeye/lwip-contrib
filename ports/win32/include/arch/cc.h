@@ -37,10 +37,10 @@
 #include <limits.h>
 
 #ifdef _MSC_VER
-#pragma warning (disable: 4244) /* disable conversion warning (implicit integer promotion!) */
 #pragma warning (disable: 4127) /* conditional expression is constant */
 #pragma warning (disable: 4996) /* 'strncpy' was declared deprecated */
 #pragma warning (disable: 4103) /* structure packing changed by including file */
+#pragma warning (disable: 4820) /* 'x' bytes padding added after data member 'y' */
 #endif
 
 #define LWIP_PROVIDE_ERRNO

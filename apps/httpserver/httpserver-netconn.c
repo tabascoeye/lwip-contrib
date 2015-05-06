@@ -11,8 +11,8 @@
 #define HTTPD_DEBUG         LWIP_DBG_OFF
 #endif
 
-const static char http_html_hdr[] = "HTTP/1.1 200 OK\r\nContent-type: text/html\r\n\r\n";
-const static char http_index_html[] = "<html><head><title>Congrats!</title></head><body><h1>Welcome to our lwIP HTTP server!</h1><p>This is a small test page, served by httpserver-netconn.</body></html>";
+static const char http_html_hdr[] = "HTTP/1.1 200 OK\r\nContent-type: text/html\r\n\r\n";
+static const char http_index_html[] = "<html><head><title>Congrats!</title></head><body><h1>Welcome to our lwIP HTTP server!</h1><p>This is a small test page, served by httpserver-netconn.</body></html>";
 
 /** Serve one HTTP connection accepted in the http thread */
 static void
@@ -91,7 +91,7 @@ http_server_netconn_thread(void *arg)
 
 /** Initialize the HTTP server (start its thread) */
 void
-http_server_netconn_init()
+http_server_netconn_init(void)
 {
   sys_thread_new("http_server_netconn", http_server_netconn_thread, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
 }

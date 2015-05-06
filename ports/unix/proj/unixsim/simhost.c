@@ -42,6 +42,8 @@
 #include "lwip/memp.h"
 #include "lwip/sys.h"
 
+#include "lwip/dns.h"
+
 #include "lwip/stats.h"
 
 #include "lwip/tcp_impl.h"
@@ -79,11 +81,11 @@
 #endif
 
 /* (manual) host IP configuration */
-static ip_addr_t ipaddr, netmask, gw;
+static ip4_addr_t ipaddr, netmask, gw;
 
 /* ping out destination cmd option */
 static unsigned char ping_flag;
-static ip_addr_t ping_addr;
+static ip4_addr_t ping_addr;
 
 /* nonstatic debug cmd option, exported in lwipopts.h */
 unsigned char debug_flags;
@@ -146,21 +148,27 @@ tcpip_init_done(void *arg)
 static void
 ppp_link_status_cb(ppp_pcb *pcb, int err_code, void *ctx)
 {
+    struct netif *pppif = ppp_netif(pcb);
     LWIP_UNUSED_ARG(ctx);
 
     switch(err_code) {
     case PPPERR_NONE:               /* No error. */
         {
-        struct ppp_addrs *ppp_addrs = ppp_addrs(pcb);
+#if LWIP_DNS
+        ip_addr_t ns;
+#endif /* LWIP_DNS */
         fprintf(stderr, "ppp_link_status_cb: PPPERR_NONE\n\r");
-        fprintf(stderr, "   our_ipaddr  = %s\n\r", ip_ntoa(&ppp_addrs->our_ipaddr));
-        fprintf(stderr, "   his_ipaddr  = %s\n\r", ip_ntoa(&ppp_addrs->his_ipaddr));
-        fprintf(stderr, "   netmask     = %s\n\r", ip_ntoa(&ppp_addrs->netmask));
-        fprintf(stderr, "   dns1        = %s\n\r", ip_ntoa(&ppp_addrs->dns1));
-        fprintf(stderr, "   dns2        = %s\n\r", ip_ntoa(&ppp_addrs->dns2));
+        fprintf(stderr, "   our_ipaddr  = %s\n\r", ipaddr_ntoa(&pppif->ip_addr));
+        fprintf(stderr, "   his_ipaddr  = %s\n\r", ipaddr_ntoa(&pppif->gw));
+        fprintf(stderr, "   netmask     = %s\n\r", ipaddr_ntoa(&pppif->netmask));
+#if LWIP_DNS
+        ns = dns_getserver(0);
+        fprintf(stderr, "   dns1        = %s\n\r", ipaddr_ntoa(&ns));
+        ns = dns_getserver(1);
+        fprintf(stderr, "   dns2        = %s\n\r", ipaddr_ntoa(&ns));
+#endif /* LWIP_DNS */
 #if PPP_IPV6_SUPPORT
-        fprintf(stderr, "   our6_ipaddr = %s\n\r", ip6addr_ntoa(&ppp_addrs->our6_ipaddr));
-        fprintf(stderr, "   his6_ipaddr = %s\n\r", ip6addr_ntoa(&ppp_addrs->his6_ipaddr));
+        fprintf(stderr, "   our6_ipaddr = %s\n\r", ip6addr_ntoa(netif_ip6_addr(pppif, 0)));
 #endif /* PPP_IPV6_SUPPORT */
         }
         break;
@@ -229,14 +237,14 @@ static int seq_num;
 #if 0
 /* Ping using the raw api */
 static int
-ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, ip_addr_t *addr)
+ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, ip4_addr_t *addr)
 {
   printf("ping recv\n");
   return 1; /* eat the event */
 }
 
 static void
-ping_send(struct raw_pcb *raw, ip_addr_t *addr)
+ping_send(struct raw_pcb *raw, ip4_addr_t *addr)
 {
   struct pbuf *p;
   struct icmp_echo_hdr *iecho;
@@ -279,7 +287,7 @@ ping_thread(void *arg)
 /* Ping using the socket api */
 
 static void
-ping_send(int s, ip_addr_t *addr)
+ping_send(int s, ip4_addr_t *addr)
 {
   struct icmp_echo_hdr *iecho;
   struct sockaddr_in to;
@@ -303,7 +311,7 @@ ping_send(int s, ip_addr_t *addr)
 }
 
 static void
-ping_recv(int s, ip_addr_t *addr)
+ping_recv(int s, ip4_addr_t *addr)
 {
   char buf[200];
   socklen_t fromlen;
@@ -441,7 +449,6 @@ main_thread(void *arg)
 int
 main(int argc, char **argv)
 {
-  struct in_addr inaddr;
   int ch;
   char ip_str[16] = {0}, nm_str[16] = {0}, gw_str[16] = {0};
 
@@ -464,23 +471,18 @@ main(int argc, char **argv)
         exit(0);
         break;
       case 'g':
-        inet_aton(optarg, &inaddr);
-        gw.addr = inaddr.s_addr;
+        ip4addr_aton(optarg, &gw);
         break;
       case 'i':
-        inet_aton(optarg, &inaddr);
-        ipaddr.addr = inaddr.s_addr;
+        ip4addr_aton(optarg, &ipaddr);
         break;
       case 'm':
-        inet_aton(optarg, &inaddr);
-        netmask.addr = inaddr.s_addr;
+        ip4addr_aton(optarg, &netmask);
         break;
       case 'p':
         ping_flag = !0;
-        inet_aton(optarg, &inaddr);
-        /* lwip inet.h oddity workaround */
-        ping_addr.addr = inaddr.s_addr; 
-        strncpy(ip_str,inet_ntoa(inaddr),sizeof(ip_str));
+        ip4addr_aton(optarg, &ping_addr);
+        strncpy(ip_str,ip4addr_ntoa(&ping_addr),sizeof(ip_str));
         printf("Using %s to ping\n", ip_str);
         break;
       default:
@@ -491,12 +493,9 @@ main(int argc, char **argv)
   argc -= optind;
   argv += optind;
 
-  inaddr.s_addr = ipaddr.addr;
-  strncpy(ip_str,inet_ntoa(inaddr),sizeof(ip_str));
-  inaddr.s_addr = netmask.addr;
-  strncpy(nm_str,inet_ntoa(inaddr),sizeof(nm_str));
-  inaddr.s_addr = gw.addr;
-  strncpy(gw_str,inet_ntoa(inaddr),sizeof(gw_str));
+  strncpy(ip_str,ip4addr_ntoa(&ipaddr),sizeof(ip_str));
+  strncpy(nm_str,ip4addr_ntoa(&netmask),sizeof(nm_str));
+  strncpy(gw_str,ip4addr_ntoa(&gw),sizeof(gw_str));
   printf("Host at %s mask %s gateway %s\n", ip_str, nm_str, gw_str);
 
 #ifdef PERF

@@ -43,14 +43,14 @@
 #include <sys/uio.h>
 #include <sys/socket.h>
 
-#if defined(linux)
+#if defined(LWIP_UNIX_LINUX)
 #include <sys/ioctl.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
 #define DEVTAP "/dev/net/tun"
 #define IFCONFIG_ARGS "tap0 inet %d.%d.%d.%d"
 
-#elif defined(openbsd)
+#elif defined(LWIP_UNIX_OPENBSD)
 #define DEVTAP "/dev/tun0"
 #define IFCONFIG_ARGS "tun0 inet %d.%d.%d.%d link0"
 
@@ -88,6 +88,7 @@ low_level_init(struct netif *netif)
   struct mintapif *mintapif;
   char buf[1024];
   int ret;
+  char *preconfigured_tapif = getenv("PRECONFIGURED_TAPIF");
 
   mintapif = (struct mintapif *)netif->state;
   
@@ -101,7 +102,7 @@ low_level_init(struct netif *netif)
 
   /* device capabilities */
   /* don't set NETIF_FLAG_ETHARP if this device is not an ethernet one */
-  netif->flags |= NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP;
+  netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP;
 
   /* Do whatever else is needed to initialize interface. */  
   
@@ -111,17 +112,20 @@ low_level_init(struct netif *netif)
     exit(1);
   }
 
-#ifdef linux
+#ifdef LWIP_UNIX_LINUX
   {
     struct ifreq ifr;
     memset(&ifr, 0, sizeof(ifr));
+    if (preconfigured_tapif != NULL)
+      strncpy(ifr.ifr_name, preconfigured_tapif, IFNAMSIZ);
     ifr.ifr_flags = IFF_TAP|IFF_NO_PI;
     if (ioctl(mintapif->fd, TUNSETIFF, (void *) &ifr) < 0) {
-      perror(buf);
+      perror("Could not set interface flags");
       exit(1);
     }
   }
 #endif /* Linux */
+  netif_set_link_up(netif);
 
   snprintf(buf, sizeof(buf), "/sbin/ifconfig " IFCONFIG_ARGS,
            ip4_addr1(&(netif->gw)),
@@ -140,6 +144,7 @@ low_level_init(struct netif *netif)
 
   mintapif->lasttime = 0;
 
+  netif_set_up(netif);
 }
 /*-----------------------------------------------------------------------------------*/
 /*

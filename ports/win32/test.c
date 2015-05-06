@@ -161,21 +161,28 @@ struct netif slipif2;
 void
 pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
 {
+  struct netif *pppif = ppp_netif(pcb);
   LWIP_UNUSED_ARG(ctx);
 
   switch(errCode) {
     case PPPERR_NONE: {             /* No error. */
-      struct ppp_addrs *ppp_addrs = ppp_addrs(pcb);
-
+#if LWIP_DNS
+      ip_addr_t ns;
+#endif /* LWIP_DNS */
       printf("pppLinkStatusCallback: PPPERR_NONE\n");
-      printf("   our_ipaddr  = %s\n", ip_ntoa(&ppp_addrs->our_ipaddr));
-      printf("   his_ipaddr  = %s\n", ip_ntoa(&ppp_addrs->his_ipaddr));
-      printf("   netmask     = %s\n", ip_ntoa(&ppp_addrs->netmask));
-      printf("   dns1        = %s\n", ip_ntoa(&ppp_addrs->dns1));
-      printf("   dns2        = %s\n", ip_ntoa(&ppp_addrs->dns2));
+#if LWIP_IPV4
+      printf("   our_ipaddr  = %s\n", ip4addr_ntoa(&pppif->ip_addr));
+      printf("   his_ipaddr  = %s\n", ip4addr_ntoa(&pppif->gw));
+      printf("   netmask     = %s\n", ip4addr_ntoa(&pppif->netmask));
+#endif /* LWIP_IPV4 */
+#if LWIP_DNS
+      ns = dns_getserver(0);
+      printf("   dns1        = %s\n", ipaddr_ntoa(&ns));
+      ns = dns_getserver(1);
+      printf("   dns2        = %s\n", ipaddr_ntoa(&ns));
+#endif /* LWIP_DNS */
 #if PPP_IPV6_SUPPORT
-      printf("   our6_ipaddr = %s\n", ip6addr_ntoa(&ppp_addrs->our6_ipaddr));
-      printf("   his6_ipaddr = %s\n", ip6addr_ntoa(&ppp_addrs->his6_ipaddr));
+      printf("   our6_ipaddr = %s\n", ip6addr_ntoa(netif_ip6_addr(pppif, 0)));
 #endif /* PPP_IPV6_SUPPORT */
       break;
     }
@@ -239,7 +246,11 @@ pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
 void status_callback(struct netif *netif)
 {
   if (netif_is_up(netif)) {
-    printf("status_callback==UP, local interface IP is %s\n", ip_ntoa(&netif->ip_addr));
+#if LWIP_IPV4
+    printf("status_callback==UP, local interface IP is %s\n", ip4addr_ntoa(&netif->ip_addr));
+#else
+    printf("status_callback==UP\n");
+#endif
   } else {
     printf("status_callback==DOWN\n");
   }
@@ -259,17 +270,17 @@ void link_callback(struct netif *netif)
 
 /* This function initializes all network interfaces */
 static void
-msvc_netif_init()
+msvc_netif_init(void)
 {
-#if USE_ETHERNET
-  ip_addr_t ipaddr, netmask, gw;
-#endif /* USE_ETHERNET */
+#if LWIP_IPV4 && USE_ETHERNET
+  ip4_addr_t ipaddr, netmask, gw;
+#endif /* LWIP_IPV4 && USE_ETHERNET */
 #if USE_SLIPIF
   u8_t num_slip1 = 0;
-  ip_addr_t ipaddr_slip1, netmask_slip1, gw_slip1;
+  ip4_addr_t ipaddr_slip1, netmask_slip1, gw_slip1;
 #if USE_SLIPIF > 1
   u8_t num_slip2 = 1;
-  ip_addr_t ipaddr_slip2, netmask_slip2, gw_slip2;
+  ip4_addr_t ipaddr_slip2, netmask_slip2, gw_slip2;
 #endif /* USE_SLIPIF > 1 */
 #endif /* USE_SLIPIF */
 #if USE_DHCP || USE_AUTOIP
@@ -302,9 +313,11 @@ msvc_netif_init()
 #endif  /* PPP_SUPPORT */
 
 #if USE_ETHERNET
-  ip_addr_set_zero(&gw);
-  ip_addr_set_zero(&ipaddr);
-  ip_addr_set_zero(&netmask);
+#if LWIP_IPV4
+#define NETIF_ADDRS &ipaddr, &netmask, &gw,
+  ip4_addr_set_zero(&gw);
+  ip4_addr_set_zero(&ipaddr);
+  ip4_addr_set_zero(&netmask);
 #if USE_ETHERNET_TCPIP
 #if USE_DHCP
   printf("Starting lwIP, local interface IP is dhcp-enabled\n");
@@ -314,18 +327,22 @@ msvc_netif_init()
   LWIP_PORT_INIT_GW(&gw);
   LWIP_PORT_INIT_IPADDR(&ipaddr);
   LWIP_PORT_INIT_NETMASK(&netmask);
-  printf("Starting lwIP, local interface IP is %s\n", ip_ntoa(&ipaddr));
+  printf("Starting lwIP, local interface IP is %s\n", ip4addr_ntoa(&ipaddr));
 #endif /* USE_DHCP */
 #endif /* USE_ETHERNET_TCPIP */
+#else /* LWIP_IPV4 */
+#define NETIF_ADDRS
+  printf("Starting lwIP, IPv4 disable\n");
+#endif /* LWIP_IPV4 */
 
 #if NO_SYS
 #if LWIP_ARP
-  netif_set_default(netif_add(&netif, &ipaddr, &netmask, &gw, NULL, pcapif_init, ethernet_input));
+  netif_set_default(netif_add(&netif, NETIF_ADDRS NULL, pcapif_init, ethernet_input));
 #else /* LWIP_ARP */
-  netif_set_default(netif_add(&netif, &ipaddr, &netmask, &gw, NULL, pcapif_init, ip_input));
+  netif_set_default(netif_add(&netif, NETIF_ADDRS NULL, pcapif_init, ip_input));
 #endif /* LWIP_ARP */
 #else  /* NO_SYS */
-  netif_set_default(netif_add(&netif, &ipaddr, &netmask, &gw, NULL, pcapif_init, tcpip_input));
+  netif_set_default(netif_add(&netif, NETIF_ADDRS NULL, pcapif_init, tcpip_input));
 #if LWIP_IPV6
   netif_create_ip6_linklocal_address(&netif, 1);
   printf("ip6 linklocal address: ");
@@ -377,7 +394,7 @@ msvc_netif_init()
   LWIP_PORT_INIT_SLIP1_IPADDR(&ipaddr_slip1);
   LWIP_PORT_INIT_SLIP1_GW(&gw_slip1);
   LWIP_PORT_INIT_SLIP1_NETMASK(&netmask_slip1);
-  printf("Starting lwIP slipif, local interface IP is %s\n", ip_ntoa(&ipaddr_slip1));
+  printf("Starting lwIP slipif, local interface IP is %s\n", ip4addr_ntoa(&ipaddr_slip1));
 #if SIO_USE_COMPORT
   num_slip1++; /* COM ports cannot be 0-based */
 #endif
@@ -403,7 +420,7 @@ msvc_netif_init()
   LWIP_PORT_INIT_SLIP2_IPADDR(&ipaddr_slip2);
   LWIP_PORT_INIT_SLIP2_GW(&gw_slip2);
   LWIP_PORT_INIT_SLIP2_NETMASK(&netmask_slip2);
-  printf("Starting lwIP SLIP if #2, local interface IP is %s\n", ip_ntoa(&ipaddr_slip2));
+  printf("Starting lwIP SLIP if #2, local interface IP is %s\n", ip4addr_ntoa(&ipaddr_slip2));
 #if SIO_USE_COMPORT
   num_slip2++; /* COM ports cannot be 0-based */
 #endif
@@ -429,7 +446,7 @@ msvc_netif_init()
 void dns_found(const char *name, ip_addr_t *addr, void *arg)
 {
   LWIP_UNUSED_ARG(arg);
-  printf("%s: %s\n", name, addr ? ip_ntoa(addr) : "<not found>");
+  printf("%s: %s\n", name, addr ? ipaddr_ntoa(addr) : "<not found>");
 }
 
 void dns_dorequest(void *arg)
@@ -446,7 +463,7 @@ void dns_dorequest(void *arg)
 
 /* This function initializes applications */
 static void
-apps_init()
+apps_init(void)
 {
 #if LWIP_DNS_APP && LWIP_DNS
   /* wait until the netif is up (for dhcp, autoip or ppp) */
@@ -521,7 +538,7 @@ test_init(void * arg)
 #endif /* NO_SYS */
 
   /* init randomizer again (seed per thread) */
-  srand(time(0));
+  srand((unsigned int)time(0));
 
   /* init network interfaces */
   msvc_netif_init();
@@ -538,7 +555,7 @@ test_init(void * arg)
  * a dedicated task that waits for packets to arrive. This would normally be
  * done from interrupt context with embedded hardware, but we don't get an
  * interrupt in windows for that :-) */
-void main_loop()
+void main_loop(void)
 {
 #if !NO_SYS
   err_t err;
@@ -565,7 +582,7 @@ void main_loop()
   sys_sem_free(&init_sem);
 #endif /* NO_SYS */
 
-#if LWIP_NETCONN_SEM_PER_THREAD
+#if (LWIP_SOCKET || LWIP_NETCONN) && LWIP_NETCONN_SEM_PER_THREAD
   netconn_thread_init();
 #endif
 
@@ -653,7 +670,7 @@ void main_loop()
       } while(sys_now() - started < 5000);
     }
 #endif /* PPP_SUPPORT */
-#if LWIP_NETCONN_SEM_PER_THREAD
+#if (LWIP_SOCKET || LWIP_NETCONN) && LWIP_NETCONN_SEM_PER_THREAD
   netconn_thread_cleanup();
 #endif
 #if USE_ETHERNET
