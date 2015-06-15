@@ -34,6 +34,7 @@ LWIPDIR=$(CODEDIR)/src
 
 LDFLAGS:=$(LDFLAGS) -lcheck -lm -lpthread -lrt -lgcov -coverage
 CFLAGS:=$(CFLAGS) -DLWIP_UNIX_EMPTY_ASSERT -I/usr/include/check -I$(LWIPDIR)/../test/unit \
+	-I$(LWIPDIR)/include \
 	-I$(LWIPDIR)/include/lwip \
 	-I$(LWIPDIR)/include/netif \
 	-Iunix/include -I. -I../include \
