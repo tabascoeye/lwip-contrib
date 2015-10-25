@@ -48,6 +48,7 @@
 #include "lwip/init.h"
 #include "lwip/tcpip.h"
 #include "lwip/netif.h"
+#include "lwip/api.h"
 
 #include "lwip/tcp.h"
 #include "lwip/udp.h"
@@ -59,13 +60,14 @@
 #include "netif/etharp.h"
 
 /* applications includes */
+#include "lwip/apps/lwiperf.h"
+#include "lwip/apps/netbiosns.h"
+#include "lwip/apps/sntp.h"
 #include "apps/httpserver_raw/httpd.h"
 #include "apps/httpserver/httpserver-netconn.h"
 #include "apps/netio/netio.h"
-#include "apps/netbios/netbios.h"
 #include "apps/ping/ping.h"
 #include "apps/rtp/rtp.h"
-#include "apps/sntp/sntp.h"
 #include "apps/chargen/chargen.h"
 #include "apps/shell/shell.h"
 #include "apps/tcpecho/tcpecho.h"
@@ -158,7 +160,7 @@ struct netif slipif2;
 
 
 #if PPP_SUPPORT
-void
+static void
 pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
 {
   struct netif *pppif = ppp_netif(pcb);
@@ -171,9 +173,9 @@ pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
 #endif /* LWIP_DNS */
       printf("pppLinkStatusCallback: PPPERR_NONE\n");
 #if LWIP_IPV4
-      printf("   our_ipaddr  = %s\n", ip4addr_ntoa(&pppif->ip_addr));
-      printf("   his_ipaddr  = %s\n", ip4addr_ntoa(&pppif->gw));
-      printf("   netmask     = %s\n", ip4addr_ntoa(&pppif->netmask));
+      printf("   our_ipaddr  = %s\n", ip4addr_ntoa(netif_ip4_addr(pppif)));
+      printf("   his_ipaddr  = %s\n", ip4addr_ntoa(netif_ip4_gw(pppif)));
+      printf("   netmask     = %s\n", ip4addr_ntoa(netif_ip4_netmask(pppif)));
 #endif /* LWIP_IPV4 */
 #if LWIP_DNS
       ns = dns_getserver(0);
@@ -240,14 +242,25 @@ pppLinkStatusCallback(ppp_pcb *pcb, int errCode, void *ctx)
     }
   }
 }
+
+#if PPPOS_SUPPORT
+static u32_t
+ppp_output_cb(ppp_pcb *pcb, u8_t *data, u32_t len, void *ctx)
+{
+  LWIP_UNUSED_ARG(pcb);
+  LWIP_UNUSED_ARG(ctx);
+  return sio_write(ppp_sio, data, len);
+}
+#endif /* PPPOS_SUPPORT */
 #endif /* PPP_SUPPORT */
 
 #if LWIP_NETIF_STATUS_CALLBACK
-void status_callback(struct netif *netif)
+static void
+status_callback(struct netif *state_netif)
 {
-  if (netif_is_up(netif)) {
+  if (netif_is_up(state_netif)) {
 #if LWIP_IPV4
-    printf("status_callback==UP, local interface IP is %s\n", ip4addr_ntoa(&netif->ip_addr));
+    printf("status_callback==UP, local interface IP is %s\n", ip4addr_ntoa(netif_ip4_addr(state_netif)));
 #else
     printf("status_callback==UP\n");
 #endif
@@ -258,9 +271,10 @@ void status_callback(struct netif *netif)
 #endif /* LWIP_NETIF_STATUS_CALLBACK */
 
 #if LWIP_NETIF_LINK_CALLBACK
-void link_callback(struct netif *netif)
+static void
+link_callback(struct netif *state_netif)
 {
-  if (netif_is_link_up(netif)) {
+  if (netif_is_link_up(state_netif)) {
     printf("link_callback==UP\n");
   } else {
     printf("link_callback==DOWN\n");
@@ -277,10 +291,14 @@ msvc_netif_init(void)
 #endif /* LWIP_IPV4 && USE_ETHERNET */
 #if USE_SLIPIF
   u8_t num_slip1 = 0;
+#if LWIP_IPV4
   ip4_addr_t ipaddr_slip1, netmask_slip1, gw_slip1;
+#endif
 #if USE_SLIPIF > 1
   u8_t num_slip2 = 1;
+#if LWIP_IPV4
   ip4_addr_t ipaddr_slip2, netmask_slip2, gw_slip2;
+#endif
 #endif /* USE_SLIPIF > 1 */
 #endif /* USE_SLIPIF */
 #if USE_DHCP || USE_AUTOIP
@@ -301,7 +319,7 @@ msvc_netif_init(void)
   if (ppp_sio == NULL) {
     printf("sio_open error\n");
   } else {
-    ppp = pppos_create(&ppp_netif, ppp_sio, pppLinkStatusCallback, NULL);
+    ppp = pppos_create(&ppp_netif, ppp_output_cb, pppLinkStatusCallback, NULL);
     if (ppp == NULL) {
       printf("pppos_create error\n");
     } else {
@@ -346,7 +364,7 @@ msvc_netif_init(void)
 #if LWIP_IPV6
   netif_create_ip6_linklocal_address(&netif, 1);
   printf("ip6 linklocal address: ");
-  ip6_addr_debug_print(0xFFFFFFFF & ~LWIP_DBG_HALT, &netif.ip6_addr[0]);
+  ip6_addr_debug_print(0xFFFFFFFF & ~LWIP_DBG_HALT, netif_ip6_addr(&netif, 0));
   printf("\n");
 #endif /* LWIP_IPV6 */
 #endif /* NO_SYS */
@@ -391,14 +409,20 @@ msvc_netif_init(void)
 
 #endif /* USE_ETHERNET */
 #if USE_SLIPIF
+#if LWIP_IPV4
+#define SLIP1_ADDRS &ipaddr_slip1, &netmask_slip1, &gw_slip1,
   LWIP_PORT_INIT_SLIP1_IPADDR(&ipaddr_slip1);
   LWIP_PORT_INIT_SLIP1_GW(&gw_slip1);
   LWIP_PORT_INIT_SLIP1_NETMASK(&netmask_slip1);
   printf("Starting lwIP slipif, local interface IP is %s\n", ip4addr_ntoa(&ipaddr_slip1));
-#if SIO_USE_COMPORT
+#else
+#define SLIP1_ADDRS
+  printf("Starting lwIP slipif\n");
+#endif
+#if defined(SIO_USE_COMPORT) && SIO_USE_COMPORT
   num_slip1++; /* COM ports cannot be 0-based */
 #endif
-  netif_add(&slipif1, &ipaddr_slip1, &netmask_slip1, &gw_slip1, &num_slip1, slipif_init, ip_input);
+  netif_add(&slipif1, SLIP1_ADDRS &num_slip1, slipif_init, ip_input);
 #if !USE_ETHERNET
   netif_set_default(&slipif1);
 #endif /* !USE_ETHERNET */
@@ -417,14 +441,20 @@ msvc_netif_init(void)
   netif_set_up(&slipif1);
 
 #if USE_SLIPIF > 1
+#if LWIP_IPV4
+#define SLIP1_ADDRS &ipaddr_slip1, &netmask_slip1, &gw_slip1,
   LWIP_PORT_INIT_SLIP2_IPADDR(&ipaddr_slip2);
   LWIP_PORT_INIT_SLIP2_GW(&gw_slip2);
   LWIP_PORT_INIT_SLIP2_NETMASK(&netmask_slip2);
   printf("Starting lwIP SLIP if #2, local interface IP is %s\n", ip4addr_ntoa(&ipaddr_slip2));
-#if SIO_USE_COMPORT
+#else
+#define SLIP2_ADDRS
+  printf("Starting lwIP SLIP if #2\n");
+#endif
+#if defined(SIO_USE_COMPORT) && SIO_USE_COMPORT
   num_slip2++; /* COM ports cannot be 0-based */
 #endif
-  netif_add(&slipif2, &ipaddr_slip2, &netmask_slip2, &gw_slip2, &num_slip2, slipif_init, ip_input);
+  netif_add(&slipif2, SLIP2_ADDRS &num_slip2, slipif_init, ip_input);
 #if LWIP_IPV6
   netif_create_ip6_linklocal_address(&slipif1, 1);
   printf("SLIP2 ip6 linklocal address: ");
@@ -443,15 +473,17 @@ msvc_netif_init(void)
 }
 
 #if LWIP_DNS_APP && LWIP_DNS
-void dns_found(const char *name, ip_addr_t *addr, void *arg)
+static void
+dns_found(const char *name, const ip_addr_t *addr, void *arg)
 {
   LWIP_UNUSED_ARG(arg);
   printf("%s: %s\n", name, addr ? ipaddr_ntoa(addr) : "<not found>");
 }
 
-void dns_dorequest(void *arg)
+static void
+dns_dorequest(void *arg)
 {
-  char* dnsname = "3com.com";
+  const char* dnsname = "3com.com";
   ip_addr_t dnsresp;
   LWIP_UNUSED_ARG(arg);
  
@@ -460,6 +492,21 @@ void dns_dorequest(void *arg)
   }
 }
 #endif /* LWIP_DNS_APP && LWIP_DNS */
+
+#if LWIP_LWIPERF_APP
+static void
+lwiperf_report(void *arg, enum lwiperf_report_type report_type,
+  const ip_addr_t* local_addr, u16_t local_port, const ip_addr_t* remote_addr, u16_t remote_port,
+  u32_t bytes_transferred, u32_t ms_duration, u32_t bandwidth_kbitpsec)
+{
+  LWIP_UNUSED_ARG(arg);
+  LWIP_UNUSED_ARG(local_addr);
+  LWIP_UNUSED_ARG(local_port);
+
+  printf("IPERF report: type=%d, remote: %s:%d, total bytes: %lu, duration in ms: %lu, kbits/s: %lu\n",
+    (int)report_type, ipaddr_ntoa(remote_addr), (int)remote_port, bytes_transferred, ms_duration, bandwidth_kbitpsec);
+}
+#endif /* LWIP_LWIPERF_APP */
 
 /* This function initializes applications */
 static void
@@ -479,7 +526,14 @@ apps_init(void)
 #endif /* LWIP_PING_APP && LWIP_RAW && LWIP_ICMP */
 
 #if LWIP_NETBIOS_APP && LWIP_UDP
-  netbios_init();
+  netbiosns_init();
+#ifndef NETBIOS_LWIP_NAME
+#if LWIP_NETIF_HOSTNAME
+  netbiosns_set_name(netif_default->hostname);
+#else
+  netbiosns_set_name("NETBIOSLWIPDEV");
+#endif
+#endif
 #endif /* LWIP_NETBIOS_APP && LWIP_UDP */
 
 #if LWIP_HTTPD_APP && LWIP_TCP
@@ -515,6 +569,9 @@ apps_init(void)
 #if LWIP_UDPECHO_APP && LWIP_NETCONN
   udpecho_init();
 #endif /* LWIP_UDPECHO_APP && LWIP_NETCONN */
+#if LWIP_LWIPERF_APP
+  lwiperf_start_tcp_server_default(lwiperf_report, NULL);
+#endif
 #if LWIP_SOCKET_EXAMPLES_APP && LWIP_SOCKET
   socket_examples_init();
 #endif /* LWIP_SOCKET_EXAMPLES_APP && LWIP_SOCKET */
@@ -555,7 +612,8 @@ test_init(void * arg)
  * a dedicated task that waits for packets to arrive. This would normally be
  * done from interrupt context with embedded hardware, but we don't get an
  * interrupt in windows for that :-) */
-void main_loop(void)
+static void
+main_loop(void)
 {
 #if !NO_SYS
   err_t err;
@@ -575,6 +633,7 @@ void main_loop(void)
   test_init(NULL);
 #else /* NO_SYS */
   err = sys_sem_new(&init_sem, 0);
+  LWIP_ASSERT("failed to create init_sem", err == ERR_OK);
   tcpip_init(test_init, &init_sem);
   /* we have to wait for initialization to finish before
    * calling update_adapter()! */

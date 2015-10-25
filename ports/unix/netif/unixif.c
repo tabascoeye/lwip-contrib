@@ -55,6 +55,8 @@
 #include "lwip/sys.h"
 #include "lwip/timers.h"
 
+#if LWIP_IPV4 /* @todo: IPv6 */
+#if !NO_SYS
 
 #include "netif/tcpdump.h"
 
@@ -78,6 +80,8 @@ struct unixif {
   struct list *q;
 };
 
+static void unixif_thread(void *arg);
+static void unixif_thread2(void *arg);
 
 /*-----------------------------------------------------------------------------------*/
 static int
@@ -187,9 +191,9 @@ unixif_input_handler(void *data)
 {
   struct netif *netif;
   struct unixif *unixif;
-  char buf[1532], *bufptr;
-  int len, plen, rlen;
-  struct pbuf *p, *q;
+  char buf[1532];
+  int len, plen;
+  struct pbuf *p;
 
   netif = (struct netif *)data;
   unixif = (struct unixif *)netif->state;
@@ -217,15 +221,7 @@ unixif_input_handler(void *data)
     p = pbuf_alloc(PBUF_LINK, len, PBUF_POOL);
 
     if (p != NULL) {
-      rlen = len;
-      bufptr = buf;
-      q = p;
-      while (rlen > 0) {
-        memcpy(q->payload, bufptr, rlen > q->len? q->len: rlen);
-        rlen -= q->len;
-        bufptr += q->len;
-        q = q->next;
-      }
+      pbuf_take(p, buf, len);
       pbuf_realloc(p, len);
       LINK_STATS_INC(link.recv);
       tcpdump(p);
@@ -488,4 +484,5 @@ unixif_init_client(struct netif *netif)
 }
 /*-----------------------------------------------------------------------------------*/
 
-
+#endif /* !NO_SYS */
+#endif /* LWIP_IPV4 */

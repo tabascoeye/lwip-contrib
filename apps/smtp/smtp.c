@@ -342,7 +342,7 @@ static err_t  smtp_tcp_poll(void *arg, struct tcp_pcb *pcb);
 static err_t  smtp_tcp_sent(void *arg, struct tcp_pcb *pcb, u16_t len);
 static err_t  smtp_tcp_connected(void *arg, struct tcp_pcb *pcb, err_t err);
 #if LWIP_DNS
-static void   smtp_dns_found(const char* hostname, ip_addr_t *ipaddr, void *arg);
+static void   smtp_dns_found(const char* hostname, const ip_addr_t *ipaddr, void *arg);
 #endif /* LWIP_DNS */
 static size_t smtp_base64_encode(char* target, size_t target_len, const char* source, size_t source_len);
 static enum   smtp_session_state smtp_prepare_mail(struct smtp_session *s, u16_t *tx_buf_len);
@@ -368,14 +368,14 @@ smtp_result_str(u8_t smtp_result)
  * WARNING: use this only if p is not needed any more as the last byte of
  *          payload is deleted!
  */
-static char*
+static const char*
 smtp_pbuf_str(struct pbuf* p)
 {
   if ((p == NULL) || (p->len == 0)) {
     return "";
   }
   ((char*)p->payload)[p->len] = 0;
-  return p->payload;
+  return (const char*)p->payload;
 }
 #endif /* LWIP_DEBUG */
 
@@ -579,6 +579,7 @@ smtp_send_mail(const char* from, const char* to, const char* subject, const char
   size_t subject_len = strlen(subject);
   size_t body_len = strlen(body);
   size_t mem_len = sizeof(struct smtp_session);
+  char *sfrom, *sto, *ssubject, *sbody;
 
   mem_len += from_len + to_len + subject_len + body_len + 4;
   if (mem_len > 0xffff) {
@@ -593,19 +594,20 @@ smtp_send_mail(const char* from, const char* to, const char* subject, const char
   }
   /* initialize the structure */
   memset(s, 0, mem_len);
-  s->from = (char*)s + sizeof(struct smtp_session);
+  s->from = sfrom = (char*)s + sizeof(struct smtp_session);
   s->from_len = (u16_t)from_len;
-  s->to = s->from + from_len + 1;
+  s->to = sto = sfrom + from_len + 1;
   s->to_len = (u16_t)to_len;
-  s->subject = s->to + to_len + 1;
+  s->subject = ssubject = sto + to_len + 1;
   s->subject_len = (u16_t)subject_len;
-  s->body = s->subject + subject_len + 1;
+  s->body = sbody = ssubject + subject_len + 1;
   s->body_len = (u16_t)body_len;
   /* copy source and target email address */
-  memcpy((char*)s->from, from, from_len + 1);
-  memcpy((char*)s->to, to, to_len + 1);
-  memcpy((char*)s->subject, subject, subject_len + 1);
-  memcpy((char*)s->body, body, body_len + 1);
+  /* cast to size_t is a hack to cast away constness */
+  memcpy(sfrom, from, from_len + 1);
+  memcpy(sto, to, to_len + 1);
+  memcpy(ssubject, subject, subject_len + 1);
+  memcpy(sbody, body, body_len + 1);
 
   s->callback_fn = callback_fn;
   s->callback_arg = callback_arg;
@@ -808,7 +810,7 @@ smtp_tcp_recv(void *arg, struct tcp_pcb *pcb, struct pbuf *p, err_t err)
     smtp_process(arg, pcb, p);
   } else {
     LWIP_DEBUGF(SMTP_DEBUG_WARN_STATE, ("smtp_tcp_recv: connection closed by remote host\n"));
-    smtp_close(arg, pcb, SMTP_RESULT_ERR_CLOSED, 0, err);
+    smtp_close((struct smtp_session*)arg, pcb, SMTP_RESULT_ERR_CLOSED, 0, err);
   }
   return ERR_OK;
 }
@@ -823,7 +825,7 @@ smtp_tcp_connected(void *arg, struct tcp_pcb *pcb, err_t err)
   } else {
     /* shouldn't happen, but we still check 'err', only to be sure */
     LWIP_DEBUGF(SMTP_DEBUG_WARN, ("smtp_connected: %d\n", (int)err));
-    smtp_close(arg, pcb, SMTP_RESULT_ERR_CONNECT, 0, err);
+    smtp_close((struct smtp_session*)arg, pcb, SMTP_RESULT_ERR_CONNECT, 0, err);
   }
   return ERR_OK;
 }
@@ -833,9 +835,9 @@ smtp_tcp_connected(void *arg, struct tcp_pcb *pcb, err_t err)
  * If ipaddr is non-NULL, resolving succeeded, otherwise it failed.
  */
 static void
-smtp_dns_found(const char* hostname, ip_addr_t *ipaddr, void *arg)
+smtp_dns_found(const char* hostname, const ip_addr_t *ipaddr, void *arg)
 {
-  struct tcp_pcb *pcb = arg;
+  struct tcp_pcb *pcb = (struct tcp_pcb *)arg;
   err_t err;
   u8_t result;
 
@@ -855,7 +857,7 @@ smtp_dns_found(const char* hostname, ip_addr_t *ipaddr, void *arg)
     result = SMTP_RESULT_ERR_HOSTNAME;
     err = ERR_ARG;
   }
-  smtp_close(pcb->callback_arg, pcb, result, 0, err);
+  smtp_close((struct smtp_session*)(pcb->callback_arg), pcb, result, 0, err);
 }
 #endif /* LWIP_DNS */
 
@@ -986,7 +988,7 @@ static enum smtp_session_state
 smtp_prepare_helo(struct smtp_session *s, u16_t *tx_buf_len, struct tcp_pcb *pcb)
 {
   size_t ipa_len;
-  char *ipa = ipaddr_ntoa(&pcb->local_ip);
+  const char *ipa = ipaddr_ntoa(&pcb->local_ip);
   LWIP_ASSERT("ipaddr_ntoa returned NULL", ipa != NULL);
   ipa_len = strlen(ipa);
   LWIP_ASSERT("string too long", ipa_len <= 0xffff);
@@ -1219,7 +1221,7 @@ smtp_send_body(struct smtp_session *s, struct tcp_pcb *pcb)
 static void
 smtp_process(void *arg, struct tcp_pcb *pcb, struct pbuf *p)
 {
-  struct smtp_session* s = arg;
+  struct smtp_session* s = (struct smtp_session*)arg;
   u16_t response_code = 0;
   u16_t tx_buf_len = 0;
   enum smtp_session_state next_state;

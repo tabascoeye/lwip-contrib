@@ -8,22 +8,28 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "lwip/arch.h"
+
 #ifdef WIN32
 
 #define WIN32_LEAN_AND_MEAN
 
+#ifdef _MSC_VER
 #pragma warning( push, 3 )
+#endif
 #include <windows.h>
 #include <packet32.h>
 #include <ntddndis.h>
+#ifdef _MSC_VER
 #pragma warning ( pop )
+#endif
 
 struct pcapifh_linkstate {
   LPADAPTER        lpAdapter;
   PPACKET_OID_DATA ppacket_oid_data;
 };
 
-struct pcapifh_linkstate* pcapifh_linkstate_init(const char *adapter_name)
+struct pcapifh_linkstate* pcapifh_linkstate_init(char *adapter_name)
 {
   struct pcapifh_linkstate* state = (struct pcapifh_linkstate*)malloc(sizeof(struct pcapifh_linkstate));
   if (state != NULL) {
@@ -80,7 +86,7 @@ struct pcapifh_linkstate {
   u8_t empty;
 };
 
-struct pcapifh_linkstate* pcapifh_linkstate_init(const char *adapter_name)
+struct pcapifh_linkstate* pcapifh_linkstate_init(char *adapter_name)
 {
   LWIP_UNUSED_ARG(adapter_name);
   return NULL;
@@ -89,13 +95,11 @@ struct pcapifh_linkstate* pcapifh_linkstate_init(const char *adapter_name)
 enum pcapifh_link_event pcapifh_linkstate_get(struct pcapifh_linkstate* state)
 {
   LWIP_UNUSED_ARG(state);
-  LWIP_ASSERT("not implemented", 0);
-  return LINKEVENT_UNKNOWN;
+  return PCAPIF_LINKEVENT_UP;
 }
 void pcapifh_linkstate_close(struct pcapifh_linkstate* state)
 {
   LWIP_UNUSED_ARG(state);
-  LWIP_ASSERT("not implemented", 0);
 }
 
 #endif /* WIN32 */

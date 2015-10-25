@@ -56,6 +56,9 @@
 
 struct netif netif;
 
+void _init(void);
+void _fini(void);
+
 static void
 tcpip_init_done(void *arg)
 {
@@ -72,6 +75,7 @@ tcpip_init_done(void *arg)
   
   netif_set_default(netif_add(&netif, &ipaddr, &netmask, &gateway, NULL, tapif_init,
                     tcpip_input));
+  netif_set_up(&netif);
 #if LWIP_IPV6
   netif_create_ip6_linklocal_address(&netif, 1);
 #endif 

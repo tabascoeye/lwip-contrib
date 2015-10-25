@@ -57,10 +57,6 @@
 #include "lwip/opt.h"
 #include "lwip/stats.h"
 
-#define UMAX(a, b)      ((a) > (b) ? (a) : (b))
-
-static struct timeval starttime;
-
 #if !NO_SYS
 
 static struct sys_thread *threads = NULL;
@@ -84,6 +80,7 @@ struct sys_mbox {
 
 struct sys_sem {
   unsigned int c;
+  pthread_condattr_t condattr;
   pthread_cond_t cond;
   pthread_mutex_t mutex;
 };
@@ -354,7 +351,9 @@ sys_sem_new_internal(u8_t count)
   sem = (struct sys_sem *)malloc(sizeof(struct sys_sem));
   if (sem != NULL) {
     sem->c = count;
-    pthread_cond_init(&(sem->cond), NULL);
+    pthread_condattr_init(&(sem->condattr));
+    pthread_condattr_setclock(&(sem->condattr), CLOCK_MONOTONIC);
+    pthread_cond_init(&(sem->cond), &(sem->condattr));
     pthread_mutex_init(&(sem->mutex), NULL);
   }
   return sem;
@@ -374,42 +373,37 @@ sys_sem_new(struct sys_sem **sem, u8_t count)
 static u32_t
 cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex, u32_t timeout)
 {
-  time_t tdiff;
-  time_t sec, usec;
-  struct timeval rtime1, rtime2;
-  struct timespec ts;
-  int retval;
+  struct timespec rtime1, rtime2, ts;
+  int ret;
 
-  if (timeout > 0) {
-    /* Get a timestamp and add the timeout value. */
-    gettimeofday(&rtime1, NULL);
-    sec = rtime1.tv_sec;
-    usec = rtime1.tv_usec;
-    usec += timeout % 1000 * 1000;
-    sec += (int)(timeout / 1000) + (int)(usec / 1000000);
-    usec = usec % 1000000;
-    ts.tv_nsec = usec * 1000;
-    ts.tv_sec = sec;
-
-    retval = pthread_cond_timedwait(cond, mutex, &ts);
-
-    if (retval == ETIMEDOUT) {
-      return SYS_ARCH_TIMEOUT;
-    } else {
-      /* Calculate for how long we waited for the cond. */
-      gettimeofday(&rtime2, NULL);
-      tdiff = (rtime2.tv_sec - rtime1.tv_sec) * 1000 +
-        (rtime2.tv_usec - rtime1.tv_usec) / 1000;
-
-      if (tdiff <= 0) {
-        return 0;
-      }
-      return (u32_t)tdiff;
-    }
-  } else {
+  if (timeout == 0) {
     pthread_cond_wait(cond, mutex);
     return 0;
   }
+
+  /* Get a timestamp and add the timeout value. */
+  clock_gettime(CLOCK_MONOTONIC, &rtime1);
+  ts.tv_sec = rtime1.tv_sec + timeout / 1000L;
+  ts.tv_nsec = rtime1.tv_nsec + (timeout % 1000L) * 1000000L;
+  if (ts.tv_nsec >= 1000000000L) {
+    ts.tv_sec++;
+    ts.tv_nsec -= 1000000000L;
+  }
+
+  ret = pthread_cond_timedwait(cond, mutex, &ts);
+  if (ret == ETIMEDOUT) {
+    return SYS_ARCH_TIMEOUT;
+  }
+
+  /* Calculate for how long we waited for the cond. */
+  clock_gettime(CLOCK_MONOTONIC, &rtime2);
+  ts.tv_sec = rtime2.tv_sec - rtime1.tv_sec;
+  ts.tv_nsec = rtime2.tv_nsec - rtime1.tv_nsec;
+  if (ts.tv_nsec < 0) {
+    ts.tv_sec--;
+    ts.tv_nsec += 1000000000L;
+  }
+  return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
 }
 /*-----------------------------------------------------------------------------------*/
 u32_t
@@ -462,6 +456,7 @@ static void
 sys_sem_free_internal(struct sys_sem *sem)
 {
   pthread_cond_destroy(&(sem->cond));
+  pthread_condattr_destroy(&(sem->condattr));
   pthread_mutex_destroy(&(sem->mutex));
   free(sem);
 }
@@ -479,21 +474,15 @@ sys_sem_free(struct sys_sem **sem)
 u32_t
 sys_now(void)
 {
-  struct timeval tv;
-  u32_t sec, usec, msec;
-  gettimeofday(&tv, NULL);
+  struct timespec ts;
 
-  sec = (u32_t)(tv.tv_sec - starttime.tv_sec);
-  usec = (u32_t)(tv.tv_usec - starttime.tv_usec);
-  msec = sec * 1000 + usec / 1000;
-
-  return msec;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return ts.tv_sec * 1000L + ts.tv_nsec / 1000000L;
 }
 /*-----------------------------------------------------------------------------------*/
 void
 sys_init(void)
 {
-  gettimeofday(&starttime, NULL);
 }
 /*-----------------------------------------------------------------------------------*/
 #if SYS_LIGHTWEIGHT_PROT
@@ -552,31 +541,12 @@ sys_arch_unprotect(sys_prot_t pval)
     }
 }
 #endif /* SYS_LIGHTWEIGHT_PROT */
-
 /*-----------------------------------------------------------------------------------*/
-
-#ifndef MAX_JIFFY_OFFSET
-#define MAX_JIFFY_OFFSET ((~0U >> 1)-1)
-#endif
-
-#ifndef HZ
-#define HZ 100
-#endif
-
 u32_t
 sys_jiffies(void)
 {
-    struct timeval tv;
-    unsigned long sec;
-    long usec;
+  struct timespec ts;
 
-    gettimeofday(&tv,NULL);
-    sec = tv.tv_sec - starttime.tv_sec;
-    usec = tv.tv_usec;
-
-    if (sec >= (MAX_JIFFY_OFFSET / HZ))
-      return MAX_JIFFY_OFFSET;
-    usec += 1000000L / HZ - 1;
-    usec /= 1000000L / HZ;
-    return HZ * sec + usec;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return ts.tv_sec * 1000000000L + ts.tv_nsec;
 }

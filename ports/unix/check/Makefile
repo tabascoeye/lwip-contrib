@@ -31,6 +31,8 @@
  
 CODEDIR=../../../../lwip
 LWIPDIR=$(CODEDIR)/src
+CONTRIBDIR=../../..
+LWIPARCH=$(CONTRIBDIR)/ports/unix
 
 LDFLAGS:=$(LDFLAGS) -lcheck -lm -lpthread -lrt -lgcov -coverage
 CFLAGS:=$(CFLAGS) -DLWIP_UNIX_EMPTY_ASSERT -I/usr/include/check -I$(LWIPDIR)/../test/unit \
@@ -47,7 +49,7 @@ COREFILES=$(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c \
 	$(LWIPDIR)/core/pbuf.c $(LWIPDIR)/core/raw.c \
 	$(LWIPDIR)/core/stats.c $(LWIPDIR)/core/sys.c \
 	$(LWIPDIR)/core/tcp.c $(LWIPDIR)/core/tcp_in.c \
-	$(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/udp.c $(LWIPDIR)/core/dhcp.c \
+	$(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/udp.c $(LWIPDIR)/core/ipv4/dhcp.c \
 	$(LWIPDIR)/core/init.c $(LWIPDIR)/core/timers.c $(LWIPDIR)/core/def.c \
 	$(LWIPDIR)/core/inet_chksum.c 
 
@@ -64,7 +66,7 @@ CORE6FILES=$(LWIPDIR)/core/ipv6/dhcp6.c $(LWIPDIR)/core/ipv6/ethip6.c $(LWIPDIR)
 CORESNMPFILES=$(LWIPDIR)/core/snmp/asn1_dec.c $(LWIPDIR)/core/snmp/asn1_enc.c $(LWIPDIR)/core/snmp/mib2.c \
 	$(LWIPDIR)/core/snmp/mib_structs.c $(LWIPDIR)/core/snmp/msg_in.c $(LWIPDIR)/core/snmp/msg_out.c 
 
-ARCHFILES=sys_arch.c
+ARCHFILES=$(wildcard $(LWIPARCH)/*.c)
 
 # LWIPFILES: All the above.
 LWIPFILES=$(APIFILES) $(COREFILES) $(NETIFFILES) $(CORESNMPFILES) $(CORE4FILES) $(CORE6FILES) $(ARCHFILES)

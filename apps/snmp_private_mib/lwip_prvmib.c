@@ -44,7 +44,7 @@
 
 #include "private_mib.h"
 
-#if LWIP_SNMP
+#if SNMP_PRIVATE_MIB
 
 /** Directory where the sensor files are */
 #define SENSORS_DIR           "w:\\sensors"
@@ -107,16 +107,17 @@ struct sensor_inf
   struct mib_list_rootnode sensor_list_rn;
 };
 
-struct sensor_inf sensor_addr_inf =
+static struct sensor_inf sensor_addr_inf =
 {
   {{0}},
   {
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    MIB_NODE_LR,
-    0,
+    {
+      {MIB_NODE_LR},
+      NULL,
+      NULL,
+      NULL,
+      NULL
+    },
     NULL,
     NULL,
     0
@@ -132,7 +133,7 @@ static void sensorentry_get_object_def_q(void* addr_inf, u8_t rid, u8_t ident_le
 static void sensorentry_get_object_def_a(u8_t rid, u8_t ident_len, s32_t *ident, struct obj_def *od);
 static void sensorentry_get_object_def_pc(u8_t rid, u8_t ident_len, s32_t *ident);
 static void sensorentry_get_value_q(u8_t rid, struct obj_def *od);
-static void sensorentry_get_value_a(u8_t rid, struct obj_def *od, u16_t len, void *value);
+static u16_t sensorentry_get_value_a(u8_t rid, struct obj_def *od, void *value);
 static void sensorentry_get_value_pc(u8_t rid, struct obj_def *od);
 static void sensorentry_set_test_q(u8_t rid, struct obj_def *od);
 static u8_t sensorentry_set_test_a(u8_t rid, struct obj_def *od, u16_t len, void *value);
@@ -144,12 +145,7 @@ static void sensorentry_set_value_pc(u8_t rid, struct obj_def *od);
 /* sensorentry .1.3.6.1.4.1.26381.1.1.1 (.level0.level1)
    where level 0 is the object identifier (temperature) and level 1 the index */
 static struct mib_external_node sensorentry = {
-  &noleafs_get_object_def,
-  &noleafs_get_value,
-  &noleafs_set_test,
-  &noleafs_set_value,
-  MIB_NODE_EX,
-  0,
+  { MIB_NODE_EX },
   &sensor_addr_inf,
   /* 0 tree_levels (empty table) at power-up,
      2 when one or more sensors are detected */
@@ -175,76 +171,46 @@ static struct mib_external_node sensorentry = {
 };
 
 /* sensortable .1.3.6.1.4.1.26381.1.1 */
-static const s32_t sensortable_ids[1] = { 1 };
-static const struct mib_node* const sensortable_nodes[1] = {
- (struct mib_node* const)&sensorentry
+static const struct mib_array_node_entry sensortable_nodes[] = {
+  {1, &sensorentry.node}
 };
 static const struct mib_array_node sensortable = {
-  &noleafs_get_object_def,
-  &noleafs_get_value,
-  &noleafs_set_test,
-  &noleafs_set_value,
-  MIB_NODE_AR,
-  1,
-  sensortable_ids,
+  { MIB_NODE_AR },
+  LWIP_ARRAYSIZE(sensortable_nodes),
   sensortable_nodes
 };
 
 /* example .1.3.6.1.4.1.26381.1 */
-static const s32_t example_ids[1] = { 1 };
-static const struct mib_node* const example_nodes[1] = {
-  (struct mib_node* const)&sensortable
+static const struct mib_array_node_entry example_nodes[] = {
+  {1, &sensortable.node}
 };
 static const struct mib_array_node example = {
-  &noleafs_get_object_def,
-  &noleafs_get_value,
-  &noleafs_set_test,
-  &noleafs_set_value,
-  MIB_NODE_AR,
-  1,
-  example_ids,
+  { MIB_NODE_AR },
+  LWIP_ARRAYSIZE(example_nodes),
   example_nodes
 };
 
 /* lwip .1.3.6.1.4.1.26381 */
-static const s32_t lwip_ids[1] = { 1 };
-static const struct mib_node* const lwip_nodes[1] = { (struct mib_node* const)&example };
+static const struct mib_array_node_entry lwip_nodes[] = { {1, &example.node} };
 static const struct mib_array_node lwip = {
-  &noleafs_get_object_def,
-  &noleafs_get_value,
-  &noleafs_set_test,
-  &noleafs_set_value,
-  MIB_NODE_AR,
-  1,
-  lwip_ids,
+  { MIB_NODE_AR },
+  LWIP_ARRAYSIZE(lwip_nodes),
   lwip_nodes
 };
 
 /* enterprises .1.3.6.1.4.1 */
-static const s32_t enterprises_ids[1] = { 26381 };
-static const struct mib_node* const enterprises_nodes[1] = { (struct mib_node* const)&lwip };
+static const struct mib_array_node_entry enterprises_nodes[] = { {26381, &lwip.node} };
 static const struct mib_array_node enterprises = {
-  &noleafs_get_object_def,
-  &noleafs_get_value,
-  &noleafs_set_test,
-  &noleafs_set_value,
-  MIB_NODE_AR,
-  1,
-  enterprises_ids,
+  { MIB_NODE_AR },
+  LWIP_ARRAYSIZE(enterprises_nodes),
   enterprises_nodes
 };
 
 /* private .1.3.6.1.4 */
-static const s32_t private_ids[1] = { 1 };
-static const struct mib_node* const private_nodes[1] = { (struct mib_node* const)&enterprises };
+static const struct mib_array_node_entry private_nodes[] = { {1, &enterprises.node} };
 const struct mib_array_node mib_private = {
-  &noleafs_get_object_def,
-  &noleafs_get_value,
-  &noleafs_set_test,
-  &noleafs_set_value,
-  MIB_NODE_AR,
-  1,
-  private_ids,
+  { MIB_NODE_AR },
+  LWIP_ARRAYSIZE(private_nodes),
   private_nodes
 };
 
@@ -458,7 +424,6 @@ sensorentry_get_object_def_a(u8_t rid, u8_t ident_len, s32_t *ident, struct obj_
     od->instance = MIB_OBJECT_TAB;
     od->access = MIB_OBJECT_READ_WRITE;
     od->asn_type = (SNMP_ASN1_UNIV | SNMP_ASN1_PRIMIT | SNMP_ASN1_INTEG);
-    od->v_len = sizeof(s32_t);
   }
   else
   {
@@ -485,8 +450,8 @@ sensorentry_get_value_q(u8_t rid, struct obj_def *od)
   snmp_msg_event(rid);
 }
 
-static void
-sensorentry_get_value_a(u8_t rid, struct obj_def *od, u16_t len, void *value)
+static u16_t
+sensorentry_get_value_a(u8_t rid, struct obj_def *od, void *value)
 {
   s32_t i;
   s32_t *temperature = (s32_t *)value;
@@ -496,7 +461,6 @@ sensorentry_get_value_a(u8_t rid, struct obj_def *od, u16_t len, void *value)
 #endif /* SENSORS_USE_FILES */
 
   LWIP_UNUSED_ARG(rid);
-  LWIP_UNUSED_ARG(len);
 
   i = od->id_inst_ptr[1];
 #if SENSORS_USE_FILES
@@ -514,6 +478,7 @@ sensorentry_get_value_a(u8_t rid, struct obj_def *od, u16_t len, void *value)
     *temperature = sensor_values[i];
   }
 #endif /* SENSORS_USE_FILES */
+  return sizeof(s32_t);
 }
 
 static void
@@ -601,4 +566,4 @@ sensorentry_set_value_pc(u8_t rid, struct obj_def *od)
   /* nop */
 }
 
-#endif /* LWIP_SNMP */
+#endif /* SNMP_PRIVATE_MIB */

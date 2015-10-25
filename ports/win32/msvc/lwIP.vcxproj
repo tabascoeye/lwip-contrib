@@ -234,8 +234,10 @@
     <ClCompile Include="$(LWIP_DIR)\src\api\pppapi.c" />
     <ClCompile Include="$(LWIP_DIR)\src\api\sockets.c" />
     <ClCompile Include="$(LWIP_DIR)\src\api\tcpip.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\lwiperf\lwiperf.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\netbiosns\netbiosns.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\sntp\sntp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\def.c" />
-    <ClCompile Include="$(LWIP_DIR)\src\core\dhcp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\dns.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\inet_chksum.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\init.c" />
@@ -252,6 +254,7 @@
     <ClCompile Include="$(LWIP_DIR)\src\core\timers.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\udp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\ipv4\autoip.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\core\ipv4\dhcp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\ipv4\icmp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\ipv4\igmp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\ipv4\ip4.c" />
@@ -289,6 +292,7 @@
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\ipv6cp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\lcp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\magic.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\mppe.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\multilink.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\ppp.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\pppcrypt.c" />
@@ -298,6 +302,7 @@
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\upap.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\utils.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\vj.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\polarssl\arc4.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\polarssl\des.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\polarssl\md4.c" />
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\polarssl\md5.c" />
@@ -306,8 +311,16 @@
     <ClCompile Include="..\sys_arch.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\lwiperf.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\netbiosns.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\netbiosns_opts.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\sntp.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\sntp_opts.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\api_msg.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\memp_std.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\tcpip_priv.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\tcp_priv.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\api.h" />
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\api_msg.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\arch.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\autoip.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\debug.h" />
@@ -332,7 +345,6 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\ip_frag.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\mem.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\memp.h" />
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\memp_std.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\mld6.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\nd6.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\netbuf.h" />
@@ -346,13 +358,13 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\sio.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_asn1.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_mib2.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_msg.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_structs.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\sockets.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\stats.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\sys.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\tcp.h" />
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\tcp_impl.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\tcpip.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\timers.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\udp.h" />
@@ -370,6 +382,7 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\ipv6cp.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\lcp.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\magic.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\mppe.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\ppp.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\ppp_impl.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\pppcrypt.h" />
@@ -379,6 +392,7 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\pppos.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\upap.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\vj.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\polarssl\arc4.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\polarssl\des.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\polarssl\md4.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\polarssl\md5.h" />

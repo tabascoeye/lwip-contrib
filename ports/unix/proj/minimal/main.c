@@ -48,8 +48,8 @@
 #include "lwip/ip_frag.h"
 #include "lwip/udp.h"
 #include "lwip/snmp_msg.h"
-#include "lwip/tcp_impl.h"
-#include "mintapif.h"
+#include "lwip/tcp.h"
+#include "netif/tapif.h"
 #include "netif/etharp.h"
 
 #include "echo.h"
@@ -106,16 +106,6 @@ usage(void)
     printf("-%c --%s\n",longopts[i].val, longopts[i].name);
   }
 }
-
-#if LWIP_SNMP
-static void
-snmp_increment(void *arg)
-{
-  LWIP_UNUSED_ARG(arg);
-  snmp_inc_sysuptime();
-  sys_timeout(10, snmp_increment, NULL);
-} 
-#endif /* LWIP_SNMP */
 
 int
 main(int argc, char **argv)
@@ -186,7 +176,7 @@ main(int argc, char **argv)
 
   printf("TCP/IP initialized.\n");
 
-  netif_add(&netif, &ipaddr, &netmask, &gw, NULL, mintapif_init, ethernet_input);
+  netif_add(&netif, &ipaddr, &netmask, &gw, NULL, tapif_init, ethernet_input);
   netif_set_default(&netif);
   netif_set_up(&netif);
 #if LWIP_IPV6
@@ -209,16 +199,12 @@ main(int argc, char **argv)
 
   echo_init();
 
-#if LWIP_SNMP
-  sys_timeout(10, snmp_increment, NULL);
-#endif /* LWIP_SNMP */
-
   printf("Applications started.\n");
     
 
   while (1) {
     /* poll netif, pass packet to lwIP */
-    mintapif_select(&netif);
+    tapif_select(&netif);
 
     sys_check_timeouts();
   }

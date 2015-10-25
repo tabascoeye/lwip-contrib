@@ -10,6 +10,18 @@
     <Filter Include="src\api">
       <UniqueIdentifier>{5752fd8f-90c3-4381-8b6a-86c09a2f9859}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\apps">
+      <UniqueIdentifier>{48a805a9-e5d2-4eed-b29c-02b57140a03d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\apps\lwiperf">
+      <UniqueIdentifier>{8a8dba58-934c-4292-aa8d-d20e2b801bd4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\apps\netbiosns">
+      <UniqueIdentifier>{20594706-d6e1-4503-bc38-f297892d752a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\apps\sntp">
+      <UniqueIdentifier>{9b7b3b39-f3b0-4915-81d9-d66c3443c348}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\core">
       <UniqueIdentifier>{75f75ac5-73a4-4458-bc23-eaed529c37e1}</UniqueIdentifier>
     </Filter>
@@ -27,6 +39,12 @@
     </Filter>
     <Filter Include="src\include\lwip">
       <UniqueIdentifier>{6b889738-b59a-450a-b4dd-0d1986bffca1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\include\lwip\apps">
+      <UniqueIdentifier>{c64c0664-acd9-4f2f-8bd7-78250f4b7b4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\include\lwip\priv">
+      <UniqueIdentifier>{56e8d041-f1e0-4b02-a173-563190c0eb4a}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\include\netif">
       <UniqueIdentifier>{dc783ea8-63ed-4de6-b576-a87c318a7ad1}</UniqueIdentifier>
@@ -90,10 +108,16 @@
     <ClCompile Include="$(LWIP_DIR)\src\api\tcpip.c">
       <Filter>src\api</Filter>
     </ClCompile>
-    <ClCompile Include="$(LWIP_DIR)\src\core\def.c">
-      <Filter>src\core</Filter>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\lwiperf\lwiperf.c">
+      <Filter>src\apps\lwiperf</Filter>
     </ClCompile>
-    <ClCompile Include="$(LWIP_DIR)\src\core\dhcp.c">
+    <ClCompile Include="$(LWIP_DIR)\src\apps\netbiosns\netbiosns.c">
+      <Filter>src\apps\netbiosns</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\sntp\sntp.c">
+      <Filter>src\apps\sntp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\core\def.c">
       <Filter>src\core</Filter>
     </ClCompile>
     <ClCompile Include="$(LWIP_DIR)\src\core\dns.c">
@@ -142,6 +166,9 @@
       <Filter>src\core</Filter>
     </ClCompile>
     <ClCompile Include="$(LWIP_DIR)\src\core\ipv4\autoip.c">
+      <Filter>src\core\ipv4</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\core\ipv4\dhcp.c">
       <Filter>src\core\ipv4</Filter>
     </ClCompile>
     <ClCompile Include="$(LWIP_DIR)\src\core\ipv4\icmp.c">
@@ -255,6 +282,9 @@
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\magic.c">
       <Filter>src\netif\ppp</Filter>
     </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\mppe.c">
+      <Filter>src\netif\ppp</Filter>
+    </ClCompile>
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\multilink.c">
       <Filter>src\netif\ppp</Filter>
     </ClCompile>
@@ -282,6 +312,9 @@
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\vj.c">
       <Filter>src\netif\ppp</Filter>
     </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\polarssl\arc4.c">
+      <Filter>src\netif\ppp\polarssl</Filter>
+    </ClCompile>
     <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\polarssl\des.c">
       <Filter>src\netif\ppp\polarssl</Filter>
     </ClCompile>
@@ -302,10 +335,22 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\api.h">
-      <Filter>src\include\lwip</Filter>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\lwiperf.h">
+      <Filter>src\include\lwip\apps</Filter>
     </ClInclude>
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\api_msg.h">
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\netbiosns.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\netbiosns_opts.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\sntp.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\sntp_opts.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\api.h">
       <Filter>src\include\lwip</Filter>
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\arch.h">
@@ -380,9 +425,6 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\memp.h">
       <Filter>src\include\lwip</Filter>
     </ClInclude>
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\memp_std.h">
-      <Filter>src\include\lwip</Filter>
-    </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\mld6.h">
       <Filter>src\include\lwip</Filter>
     </ClInclude>
@@ -422,6 +464,9 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_asn1.h">
       <Filter>src\include\lwip</Filter>
     </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_mib2.h">
+      <Filter>src\include\lwip</Filter>
+    </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_msg.h">
       <Filter>src\include\lwip</Filter>
     </ClInclude>
@@ -438,9 +483,6 @@
       <Filter>src\include\lwip</Filter>
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\tcp.h">
-      <Filter>src\include\lwip</Filter>
-    </ClInclude>
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\tcp_impl.h">
       <Filter>src\include\lwip</Filter>
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\tcpip.h">
@@ -494,6 +536,9 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\magic.h">
       <Filter>src\include\netif\ppp</Filter>
     </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\mppe.h">
+      <Filter>src\include\netif\ppp</Filter>
+    </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\ppp.h">
       <Filter>src\include\netif\ppp</Filter>
     </ClInclude>
@@ -520,6 +565,9 @@
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\vj.h">
       <Filter>src\include\netif\ppp</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\polarssl\arc4.h">
+      <Filter>src\include\netif\ppp\polarssl</Filter>
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\polarssl\des.h">
       <Filter>src\include\netif\ppp\polarssl</Filter>
@@ -562,6 +610,18 @@
     </ClInclude>
     <ClInclude Include="..\include\arch\sys_arch.h">
       <Filter>arch</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\tcp_priv.h">
+      <Filter>src\include\lwip\priv</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\tcpip_priv.h">
+      <Filter>src\include\lwip\priv</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\memp_std.h">
+      <Filter>src\include\lwip\priv</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\api_msg.h">
+      <Filter>src\include\lwip\priv</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

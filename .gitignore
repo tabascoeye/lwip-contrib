@@ -1,6 +1,12 @@
-/ports/unix/check/*.o
-/ports/unix/check/*.gc*
-/ports/unix/check/lwip_unittests
+*.o
+*.so
+*.gc*
+*.a
+.depend
+/ports/unix/proj/unixsim/simhost
+/ports/unix/proj/unixsim/simrouter
+/ports/unix/proj/unixsim/simnode
+/ports/unix/proj/minimal/echop
 /ports/win32/msvc/Debug
 /ports/win32/lwipcfg_msvc.h
 /ports/win32/msvc/Debug unittests
@@ -13,3 +19,6 @@
 /ports/win32/msvc/ipch
 /ports/win32/msvc/*.opensdf
 /ports/win32/msvc/*.sdf
+/ports/unix/check/lwip_unittests
+/ports/win32/mingw/*.exe
+/ports/win32/mingw/*.map

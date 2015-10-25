@@ -3,7 +3,7 @@
 
 #include "lwip/opt.h"
 
-#if LWIP_SOCKET
+#if LWIP_SOCKET && LWIP_IPV4
 
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
@@ -54,7 +54,6 @@ typedef struct _xx
   LWIP_ASSERT("buf3 fail", !memcmp((sets)->buf3, cmpbuf, 8)); \
   LWIP_ASSERT("buf4 fail", !memcmp((sets)->buf4, cmpbuf, 8)); \
 }while(0)
-
 
 /** This is an example function that tests
     blocking- and nonblocking connect. */
@@ -196,7 +195,7 @@ sockex_nonblocking_connect(void *arg)
   ret = lwip_close(s);
   LWIP_ASSERT("ret == 0", ret == 0);
 
-  printf("select() needed %d ticks to return writable\n", ticks_b - ticks_a);
+  printf("select() needed %d ticks to return writable\n", (int)(ticks_b - ticks_a));
 
 
   /* now try nonblocking to invalid address:
@@ -257,7 +256,7 @@ sockex_nonblocking_connect(void *arg)
   ret = lwip_close(s);
   LWIP_ASSERT("ret == 0", ret == 0);
 
-  printf("select() needed %d ticks to return error\n", ticks_b - ticks_a);
+  printf("select() needed %d ticks to return error\n", (int)(ticks_b - ticks_a));
   printf("all tests done, thread ending\n");
 }
 
@@ -522,7 +521,8 @@ sockex_testtwoselects(void *arg)
 }
 
 #if !SOCKET_EXAMPLES_RUN_PARALLEL
-void socket_example_test(void* arg)
+static void
+socket_example_test(void* arg)
 {
   LWIP_UNUSED_ARG(arg);
   sockex_nonblocking_connect(NULL);

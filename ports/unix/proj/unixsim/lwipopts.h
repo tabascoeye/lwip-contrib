@@ -107,7 +107,7 @@ a lot of data that needs to be copied, this should be set high. */
 #define MEMP_NUM_TCP_SEG        16
 /* MEMP_NUM_SYS_TIMEOUT: the number of simulateously active
    timeouts. */
-#define MEMP_NUM_SYS_TIMEOUT    3
+#define MEMP_NUM_SYS_TIMEOUT    5
 
 /* The following four are used only with the sequential API and can be
    set to 0 if the application only will use the raw API. */
@@ -209,7 +209,7 @@ a lot of data that needs to be copied, this should be set high. */
 /** @todo SNMP is experimental for now
     @note UDP must be available for SNMP transport */
 #ifndef LWIP_SNMP
-#define LWIP_SNMP               0
+#define LWIP_SNMP               1
 #endif
 
 #ifndef SNMP_PRIVATE_MIB
@@ -230,11 +230,15 @@ a lot of data that needs to be copied, this should be set high. */
  * is 0
  * */
 
-#define LWIP_STATS	1
+#define LWIP_STATS        1
 
 /* ---------- PPP options ---------- */
 
-#define PPP_SUPPORT      0      /* Set > 0 for PPP */
+#define PPP_SUPPORT       1      /* Set > 0 for PPP */
+#define MPPE_SUPPORT      PPP_SUPPORT
+#define PPPOE_SUPPORT     PPP_SUPPORT
+#define PPPOL2TP_SUPPORT  PPP_SUPPORT
+#define PPPOS_SUPPORT     PPP_SUPPORT
 
 #if PPP_SUPPORT > 0
 

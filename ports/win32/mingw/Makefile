@@ -29,26 +29,21 @@
 # Author: Adam Dunkels <adam@sics.se>
 #
 
-all ipv4 compile: simhost simrouter simnode
+all ipv4 compile: test
 .PHONY: all
 
-include ../Common.mk
+include Common.mk
 
 clean:
-	rm -f *.o $(LWIPLIBCOMMON) $(APPLIB) simhost simnode simrouter *.s .depend* *.core core
+	cmd /c del /q *.o $(LWIPLIBCOMMON) $(APPLIB) test.exe *.s .depend*
 
 depend dep: .depend
 
 include .depend
 
-.depend: simhost.c simnode.c simrouter.c $(LWIPFILES) $(APPFILES)
-	$(CCDEP) $(CFLAGS) -MM $^ > .depend || rm -f .depend
+.depend: $(LWIPFILES) $(APPFILES)
+	$(CCDEP) $(CFLAGS) -MM $^ > .depend || cmd /c del .depend
 
-simhost: .depend $(LWIPLIBCOMMON) $(APPLIB) simhost.o
-	$(CC) $(CFLAGS) -o simhost simhost.o $(APPLIB) $(LWIPLIBCOMMON) $(LDFLAGS)
+test: .depend $(LWIPLIBCOMMON) $(APPLIB) test.o
+	$(CC) $(CFLAGS) -o test test.o $(APPLIB) $(LWIPLIBCOMMON) $(APPLIB) $(LDFLAGS)
 
-simrouter: .depend $(LWIPLIBCOMMON) $(APPLIB) simrouter.o
-	$(CC) $(CFLAGS) -o simrouter simrouter.o $(APPLIB) $(LWIPLIBCOMMON) $(LDFLAGS) 
-
-simnode: .depend $(LWIPLIBCOMMON) $(APPLIB) simnode.o 
-	$(CC) $(CFLAGS) -o simnode simnode.o $(APPLIB) $(LWIPLIBCOMMON) $(LDFLAGS) 
