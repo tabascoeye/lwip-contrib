@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <getopt.h>
+#include <time.h>
 
 #include "lwip/opt.h"
 
@@ -41,6 +42,7 @@
 #include "lwip/mem.h"
 #include "lwip/memp.h"
 #include "lwip/sys.h"
+#include "lwip/timers.h"
 
 #include "lwip/ip_addr.h"
 
@@ -64,6 +66,11 @@
 
 #include "netif/tcpdump.h"
 
+#if LWIP_HAVE_SLIPIF
+#include "netif/slipif.h"
+#define SLIP_PTY_TEST 1
+#endif
+
 #if PPP_SUPPORT
 #include "netif/ppp/pppos.h"
 #define PPP_PTY_TEST 1
@@ -73,20 +80,37 @@
 #include "lwip/ip_addr.h"
 #include "arch/perf.h"
 
-#include "httpd.h"
-#include "udpecho.h"
-#include "tcpecho.h"
-#include "shell.h"
+#include "lwip/apps/httpd.h"
+#include "apps/udpecho/udpecho.h"
+#include "apps/tcpecho/tcpecho.h"
+#include "apps/shell/shell.h"
+#include "apps/chargen/chargen.h"
+#include "apps/netio/netio.h"
+#include "lwip/apps/netbiosns.h"
+#include "lwip/apps/sntp.h"
+#include "lwip/apps/snmp.h"
+#include "lwip/apps/snmp_mib2.h"
+#include "apps/snmp_private_mib/private_mib.h"
 
 #if LWIP_RAW
 #include "lwip/icmp.h"
 #include "lwip/raw.h"
+#include "ports/unix/proj/lib/lwipopts.h"
 #endif
+
+#if LWIP_SNMP
+static const struct snmp_mib *mibs[] = {
+  &mib2,
+  &mib_private
+};
+#endif /* LWIP_SNMP */
 
 #if LWIP_IPV4
 /* (manual) host IP configuration */
 static ip_addr_t ipaddr, netmask, gw;
 #endif /* LWIP_IPV4 */
+
+struct netif netif;
 
 /* ping out destination cmd option */
 static unsigned char ping_flag;
@@ -140,6 +164,19 @@ tcp_debug_timeout(void *data)
 }
 #endif
 
+void
+sntp_set_system_time(u32_t sec)
+{
+  char buf[32];
+  struct tm current_time_val;
+  time_t current_time = (time_t)sec;
+
+  localtime_r(&current_time, &current_time_val);
+  
+  strftime(buf, sizeof(buf), "%d.%m.%Y %H:%M:%S", &current_time_val);
+  printf("SNTP time: %s\n", buf);
+}
+
 static void
 tcpip_init_done(void *arg)
 {
@@ -148,66 +185,46 @@ tcpip_init_done(void *arg)
 
   init_netifs();
 
+#if LWIP_IPV4
+  netbiosns_set_name("simhost");
+  netbiosns_init();
+#endif /* LWIP_IPV4 */
+
+  sntp_setoperatingmode(SNTP_OPMODE_POLL);
+#if LWIP_DHCP
+  sntp_servermode_dhcp(1); /* get SNTP server via DHCP */
+#else /* LWIP_DHCP */
+#if LWIP_IPV4
+  sntp_setserver(0, netif_ip_gw4(&netif));
+#endif /* LWIP_IPV4 */
+#endif /* LWIP_DHCP */
+  sntp_init();
+
+#if LWIP_SNMP
+  lwip_privmib_init();
+#if SNMP_LWIP_MIB2
+#if SNMP_USE_NETCONN
+  snmp_threadsync_init(&snmp_mib2_lwip_locks, snmp_mib2_lwip_synchronizer);
+#endif /* SNMP_USE_NETCONN */
+  snmp_mib2_set_syscontact_readonly((const u8_t*)"root", NULL);
+  snmp_mib2_set_syslocation_readonly((const u8_t*)"lwIP development PC", NULL);
+  snmp_mib2_set_sysdescr((const u8_t*)"simhost", NULL);
+#endif /* SNMP_LWIP_MIB2 */
+
+  snmp_set_mibs(mibs, LWIP_ARRAYSIZE(mibs));
+  snmp_init();
+#endif /* LWIP_SNMP */
+  
   sys_sem_signal(sem);
 }
 
 /*-----------------------------------------------------------------------------------*/
 /*-----------------------------------------------------------------------------------*/
-#if LWIP_RAW
+#if LWIP_SOCKET
+
+/* Ping using the socket api */
 
 static int seq_num;
-
-#if 0
-/* Ping using the raw api */
-static int
-ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, ip4_addr_t *addr)
-{
-  printf("ping recv\n");
-  return 1; /* eat the event */
-}
-
-static void
-ping_send(struct raw_pcb *raw, ip4_addr_t *addr)
-{
-  struct pbuf *p;
-  struct icmp_echo_hdr *iecho;
-
-  p = pbuf_alloc(PBUF_IP,sizeof(struct icmp_echo_hdr),PBUF_RAM);
-  if (!p) return;
-
-  iecho = p->payload;
-  ICMPH_TYPE_SET(iecho,ICMP_ECHO);
-  iecho->chksum = 0;
-  iecho->seqno = htons(seq_num);
-
-  iecho->chksum = inet_chksum(iecho, p->len);
-  raw_send_to(raw,p,addr);
-
-  pbuf_free(p);
-
-  seq_num++;
-}
-
-static void
-ping_thread(void *arg)
-{
-  struct raw_pcb *raw;
-
-  if (!(raw = raw_new(IP_PROTO_ICMP))) return;
-
-  raw_recv(raw,ping_recv,NULL);
-
-  while (1)
-  {
-    printf("ping send\n");
-    ping_send(raw,&ping_addr);
-    sleep(1);
-  }
-  /* Never reaches this */
-  raw_remove(raw);
-}
-#else
-/* Ping using the socket api */
 
 static void
 ping_send(int s, const ip_addr_t *addr)
@@ -293,14 +310,40 @@ ping_thread(void *arg)
     sleep(1);
   }
 }
-#endif
 
-#endif
+#endif /* LWIP_SOCKET */
 
-struct netif netif;
+#if LWIP_HAVE_SLIPIF
+/* (manual) host IP configuration */
+#if LWIP_IPV4
+static ip_addr_t ipaddr_slip, netmask_slip, gw_slip;
+#endif /* LWIP_IPV4 */
+struct netif slipif;
+#endif /* LWIP_HAVE_SLIPIF */
+
 #if PPP_SUPPORT
 sio_fd_t ppp_sio;
+ppp_pcb *ppp;
 struct netif pppos_netif;
+
+static void
+pppos_rx_thread(void *arg)
+{
+  u32_t len;
+  u8_t buffer[128];
+  LWIP_UNUSED_ARG(arg);
+
+  /* Please read the "PPPoS input path" chapter in the PPP documentation. */
+  while (1) {
+    len = sio_read(ppp_sio, buffer, sizeof(buffer));
+    if (len > 0) {
+      /* Pass received raw characters from PPPoS to be decoded through lwIP
+       * TCPIP thread using the TCPIP API. This is thread safe in all cases
+       * but you should avoid passing data byte after byte. */
+      pppos_input_tcpip(ppp, buffer, len);
+    }
+  }
+}
 
 static void
 ppp_link_status_cb(ppp_pcb *pcb, int err_code, void *ctx)
@@ -403,7 +446,8 @@ ppp_output_cb(ppp_pcb *pcb, u8_t *data, u32_t len, void *ctx)
 static void
 netif_status_callback(struct netif *nif)
 {
-#if LWIP_DHCP
+  printf("NETIF: %c%c%d is %s\n", nif->name[0], nif->name[1], nif->num,
+         netif_is_up(nif) ? "UP" : "DOWN");
 #if LWIP_IPV4
   printf("IPV4: Host at %s ", ip4addr_ntoa(netif_ip4_addr(nif)));
   printf("mask %s ", ip4addr_ntoa(netif_ip4_netmask(nif)));
@@ -412,17 +456,39 @@ netif_status_callback(struct netif *nif)
 #if LWIP_IPV6
   printf("IPV6: Host at %s\n", ip6addr_ntoa(netif_ip6_addr(nif, 0)));
 #endif /* LWIP_IPV6 */
-#else /* LWIP_DHCP */
-  LWIP_UNUSED_ARG(nif);
-#endif /* LWIP_DHCP */
+#if LWIP_NETIF_HOSTNAME
+  printf("FQDN: %s\n", netif_get_hostname(nif));
+#endif /* LWIP_NETIF_HOSTNAME */
 }
 #endif /* LWIP_NETIF_STATUS_CALLBACK */
 
 static void
 init_netifs(void)
 {
+#if LWIP_HAVE_SLIPIF
+#if SLIP_PTY_TEST
+  u8_t siodev_slip = 3;
+#else
+  u8_t siodev_slip = 0;
+#endif
+
+#if LWIP_IPV4
+  netif_add(&slipif, ip_2_ip4(&ipaddr_slip), ip_2_ip4(&netmask_slip), ip_2_ip4(&gw_slip),
+            (void*)&siodev_slip, slipif_init, tcpip_input);
+#else /* LWIP_IPV4 */
+  netif_add(&slipif, (void*)&siodev_slip, slipif_init, tcpip_input);
+#endif /* LWIP_IPV4 */
+#if LWIP_IPV6
+  netif_create_ip6_linklocal_address(&slipif, 1);
+#endif
+#if LWIP_NETIF_STATUS_CALLBACK
+  netif_set_status_callback(&slipif, netif_status_callback);
+#endif /* LWIP_NETIF_STATUS_CALLBACK */
+  netif_set_link_up(&slipif);
+  netif_set_up(&slipif);
+#endif /* LWIP_HAVE_SLIPIF */
+
 #if PPP_SUPPORT
-  ppp_pcb *ppp;
 #if PPP_PTY_TEST
   ppp_sio = sio_open(2);
 #else
@@ -440,11 +506,16 @@ init_netifs(void)
       printf("Could not create PPP control interface");
       exit(1);
   }
+
 #ifdef LWIP_PPP_CHAP_TEST
   ppp_set_auth(ppp, PPPAUTHTYPE_CHAP, "lwip", "mysecret");
 #endif
 
   ppp_connect(ppp, 0);
+
+#if LWIP_NETIF_STATUS_CALLBACK
+  netif_set_status_callback(&pppos_netif, netif_status_callback);
+#endif /* LWIP_NETIF_STATUS_CALLBACK */
 #endif /* PPP_SUPPORT */
   
 #if LWIP_IPV4
@@ -460,39 +531,35 @@ init_netifs(void)
 #if LWIP_IPV6
   netif_create_ip6_linklocal_address(&netif, 1);
 #endif
-  netif_set_default(&netif);
-  netif_set_up(&netif);
-
 #if LWIP_NETIF_STATUS_CALLBACK
   netif_set_status_callback(&netif, netif_status_callback);
 #endif /* LWIP_NETIF_STATUS_CALLBACK */
+  netif_set_default(&netif);
+  netif_set_up(&netif);
 
 #if LWIP_DHCP
   dhcp_start(&netif);
-#else /* LWIP_DHCP */
-#if LWIP_IPV4
-  printf("IPV4: Host at %s ", ip4addr_ntoa(netif_ip4_addr(&netif)));
-  printf("mask %s ", ip4addr_ntoa(netif_ip4_netmask(&netif)));
-  printf("gateway %s\n", ip4addr_ntoa(netif_ip4_gw(&netif)));
-#endif /* LWIP_IPV4 */
-#if LWIP_IPV6
-  printf("IPV6: Host at %s\n", ip6addr_ntoa(netif_ip6_addr(&netif, 0)));
-#endif /* LWIP_IPV6 */
 #endif /* LWIP_DHCP */
 
 #if 0
   /* Only used for testing purposes: */
   netif_add(&ipaddr, &netmask, &gw, NULL, pcapif_init, tcpip_input);
 #endif
-  
-#if LWIP_TCP  
+
+#if LWIP_TCP
+  netio_init();
+#endif
+#if LWIP_TCP && LWIP_NETCONN
   tcpecho_init();
   shell_init();
   httpd_init();
 #endif
-#if LWIP_UDP  
+#if LWIP_UDP && LWIP_NETCONN  
   udpecho_init();
 #endif  
+#if LWIP_SOCKET
+  chargen_init();
+#endif
   /*  sys_timeout(5000, tcp_debug_timeout, NULL);*/
 }
 
@@ -510,8 +577,7 @@ main_thread(void *arg)
   sys_sem_wait(&sem);
   printf("TCP/IP initialized.\n");
 
-#if LWIP_RAW
-  /** @todo remove dependency on RAW PCB support */
+#if LWIP_SOCKET
   if(ping_flag) {
     sys_thread_new("ping_thread", ping_thread, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
   }
@@ -527,6 +593,7 @@ main_thread(void *arg)
     stats_display();
 #endif
   /* Block forever. */
+  sys_thread_new("pppos_rx_thread", pppos_rx_thread, NULL, DEFAULT_THREAD_STACKSIZE, DEFAULT_THREAD_PRIO);
   sys_sem_wait(&sem);
 }
 /*-----------------------------------------------------------------------------------*/
@@ -541,6 +608,11 @@ main(int argc, char **argv)
   IP_ADDR4(&gw,      192,168,  0,1);
   IP_ADDR4(&netmask, 255,255,255,0);
   IP_ADDR4(&ipaddr,  192,168,  0,2);
+#if LWIP_HAVE_SLIPIF
+  IP_ADDR4(&gw_slip,      192,168,  2,  1);
+  IP_ADDR4(&netmask_slip, 255,255,255,255);
+  IP_ADDR4(&ipaddr_slip,  192,168,  2,  2);
+#endif
 #endif /* LWIP_IPV4 */
   
   ping_flag = 0;
@@ -571,6 +643,7 @@ main(int argc, char **argv)
         ping_flag = !0;
         ipaddr_aton(optarg, &ping_addr);
         strncpy(ip_str,ipaddr_ntoa(&ping_addr),sizeof(ip_str));
+        ip_str[sizeof(ip_str)-1] = 0; /* ensure \0 termination */
         printf("Using %s to ping\n", ip_str);
         break;
       default:

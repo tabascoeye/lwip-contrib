@@ -1168,8 +1168,14 @@ shell_thread(void *arg)
   err_t err;
   LWIP_UNUSED_ARG(arg);
 
+#if LWIP_IPV6
+  conn = netconn_new(NETCONN_TCP_IPV6);
+  netconn_bind(conn, IP6_ADDR_ANY, 23);
+#else /* LWIP_IPV6 */
   conn = netconn_new(NETCONN_TCP);
-  netconn_bind(conn, NULL, 23);
+  netconn_bind(conn, IP_ADDR_ANY, 23);
+#endif /* LWIP_IPV6 */
+  LWIP_ERROR("shell: invalid conn", (conn != NULL), return;);
   netconn_listen(conn);
 
   while (1) {

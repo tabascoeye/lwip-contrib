@@ -49,15 +49,20 @@ udpecho_thread(void *arg)
   err_t err;
   LWIP_UNUSED_ARG(arg);
 
+#if LWIP_IPV6
+  conn = netconn_new(NETCONN_UDP_IPV6);
+  netconn_bind(conn, IP6_ADDR_ANY, 7);
+#else /* LWIP_IPV6 */
   conn = netconn_new(NETCONN_UDP);
-  LWIP_ASSERT("con != NULL", conn != NULL);
-  netconn_bind(conn, NULL, 7);
+  netconn_bind(conn, IP_ADDR_ANY, 7);
+#endif /* LWIP_IPV6 */
+  LWIP_ERROR("udpecho: invalid conn", (conn != NULL), return;);
 
   while (1) {
     err = netconn_recv(conn, &buf);
     if (err == ERR_OK) {
       /*  no need netconn_connect here, since the netbuf contains the address */
-      if(netbuf_copy(buf, buffer, buf->p->tot_len) != buf->p->tot_len) {
+      if(netbuf_copy(buf, buffer, sizeof(buffer)) != buf->p->tot_len) {
         LWIP_DEBUGF(LWIP_DBG_ON, ("netbuf_copy failed\n"));
       } else {
         buffer[buf->p->tot_len] = '\0';

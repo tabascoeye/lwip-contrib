@@ -19,6 +19,9 @@
     <Filter Include="src\apps\netbiosns">
       <UniqueIdentifier>{20594706-d6e1-4503-bc38-f297892d752a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\apps\snmp">
+      <UniqueIdentifier>{1075aec7-b001-47bd-9846-ed635687e26e}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\apps\sntp">
       <UniqueIdentifier>{9b7b3b39-f3b0-4915-81d9-d66c3443c348}</UniqueIdentifier>
     </Filter>
@@ -30,9 +33,6 @@
     </Filter>
     <Filter Include="src\core\ipv6">
       <UniqueIdentifier>{06467ead-0683-44db-bc41-6aa5a82490f0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\core\snmp">
-      <UniqueIdentifier>{1075aec7-b001-47bd-9846-ed635687e26e}</UniqueIdentifier>
     </Filter>
     <Filter Include="src\include">
       <UniqueIdentifier>{166a3203-ccc3-4eff-9eaa-1e5648a7fb5b}</UniqueIdentifier>
@@ -72,6 +72,9 @@
     </Filter>
     <Filter Include="arch">
       <UniqueIdentifier>{2e87d0f7-38a3-45f8-870d-f8622c20e9d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\apps\httpd">
+      <UniqueIdentifier>{45f6a578-1f4b-4741-9b55-5b5084ecc1d9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -213,28 +216,16 @@
     <ClCompile Include="$(LWIP_DIR)\src\core\ipv6\nd6.c">
       <Filter>src\core\ipv6</Filter>
     </ClCompile>
-    <ClCompile Include="$(LWIP_DIR)\src\core\snmp\asn1_dec.c">
-      <Filter>src\core\snmp</Filter>
-    </ClCompile>
-    <ClCompile Include="$(LWIP_DIR)\src\core\snmp\asn1_enc.c">
-      <Filter>src\core\snmp</Filter>
-    </ClCompile>
-    <ClCompile Include="$(LWIP_DIR)\src\core\snmp\mib2.c">
-      <Filter>src\core\snmp</Filter>
-    </ClCompile>
-    <ClCompile Include="$(LWIP_DIR)\src\core\snmp\mib_structs.c">
-      <Filter>src\core\snmp</Filter>
-    </ClCompile>
-    <ClCompile Include="$(LWIP_DIR)\src\core\snmp\msg_in.c">
-      <Filter>src\core\snmp</Filter>
-    </ClCompile>
-    <ClCompile Include="$(LWIP_DIR)\src\core\snmp\msg_out.c">
-      <Filter>src\core\snmp</Filter>
-    </ClCompile>
     <ClCompile Include="$(LWIP_DIR)\src\netif\etharp.c">
       <Filter>src\netif</Filter>
     </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\netif\ethernet.c">
+      <Filter>src\netif</Filter>
+    </ClCompile>
     <ClCompile Include="$(LWIP_DIR)\src\netif\ethernetif.c">
+      <Filter>src\netif</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\netif\lowpan6.c">
       <Filter>src\netif</Filter>
     </ClCompile>
     <ClCompile Include="$(LWIP_DIR)\src\netif\slipif.c">
@@ -333,6 +324,51 @@
     <ClCompile Include="..\sys_arch.c">
       <Filter>arch</Filter>
     </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\httpd\httpd.c">
+      <Filter>src\apps\httpd</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\httpd\fsdata.c">
+      <Filter>src\apps\httpd</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\httpd\fs.c">
+      <Filter>src\apps\httpd</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_asn1.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_core.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_mib2.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_msg.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_netconn.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_pbuf_stream.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_raw.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_scalar.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_table.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_threadsync.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_traps.c">
+      <Filter>src\apps\snmp</Filter>
+    </ClCompile>
+    <ClCompile Include="$(LWIP_DIR)\src\core\ip.c">
+      <Filter>src\core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\lwiperf.h">
@@ -342,6 +378,12 @@
       <Filter>src\include\lwip\apps</Filter>
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\netbiosns_opts.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_opts.h">
       <Filter>src\include\lwip\apps</Filter>
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\sntp.h">
@@ -461,18 +503,6 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp.h">
       <Filter>src\include\lwip</Filter>
     </ClInclude>
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_asn1.h">
-      <Filter>src\include\lwip</Filter>
-    </ClInclude>
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_mib2.h">
-      <Filter>src\include\lwip</Filter>
-    </ClInclude>
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_msg.h">
-      <Filter>src\include\lwip</Filter>
-    </ClInclude>
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp_structs.h">
-      <Filter>src\include\lwip</Filter>
-    </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\sockets.h">
       <Filter>src\include\lwip</Filter>
     </ClInclude>
@@ -495,6 +525,15 @@
       <Filter>src\include\lwip</Filter>
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\etharp.h">
+      <Filter>src\include\netif</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\netif\ethernet.h">
+      <Filter>src\include\netif</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\netif\lowpan6.h">
+      <Filter>src\include\netif</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\netif\lowpan6_opts.h">
       <Filter>src\include\netif</Filter>
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\netif\slipif.h">
@@ -622,6 +661,39 @@
     </ClInclude>
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\priv\api_msg.h">
       <Filter>src\include\lwip\priv</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\apps\httpd\httpd_structs.h">
+      <Filter>src\apps\httpd</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\apps\httpd\fsdata.h">
+      <Filter>src\apps\httpd</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\apps\snmp\snmp_asn1.h">
+      <Filter>src\apps\snmp</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\apps\snmp\snmp_core_priv.h">
+      <Filter>src\apps\snmp</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\apps\snmp\snmp_pbuf_stream.h">
+      <Filter>src\apps\snmp</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_core.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_mib2.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_scalar.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_table.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_threadsync.h">
+      <Filter>src\include\lwip\apps</Filter>
+    </ClInclude>
+    <ClInclude Include="$(LWIP_DIR)\src\apps\snmp\snmp_msg.h">
+      <Filter>src\apps\snmp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
