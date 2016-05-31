@@ -44,6 +44,8 @@
 
 #include "private_mib.h"
 
+#if LWIP_SNMP
+
 /** Directory where the sensor files are */
 #define SENSORS_DIR           "w:\\sensors"
 /** Set to 1 to read sensor values from files (in directory defined by SENSORS_DIR) */
@@ -363,8 +365,8 @@ sensor_table_get_value(struct snmp_node_instance* instance, void* value)
 #endif /* SENSORS_USE_FILES */
     return sizeof(s32_t);
   case 2: /* file name */
-    MEMCPY(value, sensors[i].file, strlen(sensors[i].file));
-    return (u16_t)strlen(sensors[i].file);
+    MEMCPY(value, sensors[i].file, strnlen(sensors[i].file, sizeof(sensors[i].file)));
+    return (u16_t)strnlen(sensors[i].file, sizeof(sensors[i].file));
   default:
     return 0;
   }
@@ -396,3 +398,5 @@ sensor_table_set_value(struct snmp_node_instance* instance, u16_t len, void *val
 
   return SNMP_ERR_NOERROR;
 }
+
+#endif /* LWIP_SNMP */

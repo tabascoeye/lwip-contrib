@@ -234,7 +234,6 @@
     <ClCompile Include="$(LWIP_DIR)\src\api\netbuf.c" />
     <ClCompile Include="$(LWIP_DIR)\src\api\netdb.c" />
     <ClCompile Include="$(LWIP_DIR)\src\api\netifapi.c" />
-    <ClCompile Include="$(LWIP_DIR)\src\api\pppapi.c" />
     <ClCompile Include="$(LWIP_DIR)\src\api\sockets.c" />
     <ClCompile Include="$(LWIP_DIR)\src\api\tcpip.c" />
     <ClCompile Include="$(LWIP_DIR)\src\apps\lwiperf\lwiperf.c" />
@@ -326,6 +325,15 @@
     <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_threadsync.c" />
     <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_traps.c" />
     <ClCompile Include="$(LWIP_DIR)\src\core\ip.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmpv3.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_mib2_icmp.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_mib2_interfaces.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_mib2_ip.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_mib2_snmp.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_mib2_system.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_mib2_tcp.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\apps\snmp\snmp_mib2_udp.c" />
+    <ClCompile Include="$(LWIP_DIR)\src\netif\ppp\pppapi.c" />
     <ClCompile Include="..\sio.c" />
     <ClCompile Include="..\sys_arch.c" />
   </ItemGroup>
@@ -375,7 +383,6 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\netifapi.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\opt.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\pbuf.h" />
-    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\pppapi.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\raw.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\sio.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\snmp.h" />
@@ -430,6 +437,12 @@
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_scalar.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_table.h" />
     <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmp_threadsync.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\apps\snmp\snmpv3.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\netif\ppp\pppapi.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\fs.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\httpd.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\httpd_opts.h" />
+    <ClInclude Include="$(LWIP_DIR)\src\include\lwip\apps\snmpv3.h" />
     <ClInclude Include="..\include\arch\bpstruct.h" />
     <ClInclude Include="..\include\arch\cc.h" />
     <ClInclude Include="..\include\arch\epstruct.h" />
